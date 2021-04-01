@@ -1,0 +1,12 @@
+services:
+  redis:
+    image: redis
+  app:
+    build: .
+    depends_on:
+      - "redis"
+    command: run --allow-net --allow-read --watch --unstable index.ts
+    ports: 
+      - "8000:8000"
+    volumes: 
+      - ./:/app
