@@ -1,44 +1,9 @@
 import { Application, Router, Context, Status, ServerSentEventTarget, ServerSentEvent, create, verify, getNumericDate, v4, connect } from "./deps.ts";
+
+import Messenger from "./Messenger.ts";
 import generateName from "./generateName.ts";
 
-/** All connected clients on this instance */
-let clients: Map<string, {
-    name: string,
-    chatId: string,
-    target: ServerSentEventTarget
-}> = new Map();
-
-/** Redis client for normal things */
-const client = await connect({
-    hostname: "redis",
-    port: 6379
-});
-
-/** Redis client for subscriptions */
-const subClient = await connect({
-    hostname: "redis",
-    port: 6379
-});
-
-// Subscribe to all chat channels
-const messagesSub = await subClient.psubscribe("chats:*");
-
-// Handle message events
-(async function () {
-    for await (const { channel, message: rawMessage } of messagesSub.receive()) {
-        const [, chatId] = channel.split(":");
-
-        const { type } = JSON.parse(rawMessage);
-        
-        // Send to all clients
-        for (let [, client] of clients) {
-            // Send to client if it's in the chat
-            if (client.chatId === chatId) {
-                client.target.dispatchEvent(new ServerSentEvent("chatmessage", rawMessage));
-            }
-        }
-    }
-})();
+const messenger = new Messenger();
 
 /**
  * Check that the request is authenticated by a cookie
@@ -85,7 +50,9 @@ router.put("/session", async (ctx: Context) => {
     const currentJwt = ctx.cookies.get("token");
 
     /** New token's id and name */
-    let id, name;
+    let id = "";
+    let oldName = "";
+    let name = "";
 
     // Get the current user if they're passing authentication
     if (currentJwt) {
@@ -95,8 +62,8 @@ router.put("/session", async (ctx: Context) => {
             const payload = await verify(currentJwt, "secret", "HS512");
 
             // Store id if it's there
-            id = payload.id;
-            name = payload.name;
+            id = payload.id as string;
+            oldName = name = payload.name as string;
         } catch (error) {
             // Unable to verify token so they will get a new id
         }
@@ -124,11 +91,13 @@ router.put("/session", async (ctx: Context) => {
     }
     
     // Notify chat
-    const client = clients.get(id as string);
-    if (client) {
-        client.target.dispatchEvent(new ServerSentEvent("servermessage", {
-            body: `Your name is now ${name}`
-        }))
+    const client = messenger.getClient(id);
+    if (client && oldName !== name) {
+        messenger.broadcastMessage(client.chatId, {
+            type: "announcement",
+            body: `${oldName} changed their name to ${name}`,
+            timestamp: Date.now()
+        });
     }
 
     // Construct payload
@@ -184,7 +153,8 @@ router.post("/chats/:chatId/messages", authMiddleware, async (ctx: Context) => {
     }
 
     // Construct message
-    const message = {
+    const chat = {
+        type: "chat",
         client: {
             id: ctx.state.session.id,
             name: ctx.state.session.name
@@ -196,12 +166,12 @@ router.post("/chats/:chatId/messages", authMiddleware, async (ctx: Context) => {
     // Get chatId from url params
     const { chatId } = (ctx as any).params;
 
-    // Publish to the chat's chanel
-    client.publish(`chats:${chatId}`, JSON.stringify(message));
+    // Broadcast the message
+    messenger.broadcastMessage(chatId, chat);
 
     // Send response
     ctx.response.status = Status.Created;
-    ctx.response.body = message;
+    ctx.response.body = chat;
 });
 
 // Stream messages
@@ -209,16 +179,14 @@ router.get("/chats/:chatId/messages", authMiddleware, async (ctx: Context) => {
     // Kick off SSE
     const target = ctx.sendEvents();
 
-    // Send welcome message
-    target.dispatchEvent(new ServerSentEvent("servermessage", {
-        body: "Welcome to the chat!!"
-    }));
+    target.dispatchComment("Started streaming");
 
     // Get the chat id
     const { chatId } = (ctx as any).params;
 
-    // Add the client to the map
-    clients.set(ctx.state.session.id, {
+    // Track client
+    messenger.addClient(ctx.state.session.id, {
+        id: ctx.state.session.id,
         name: ctx.state.session.name,
         chatId,
         target
@@ -226,7 +194,7 @@ router.get("/chats/:chatId/messages", authMiddleware, async (ctx: Context) => {
     
     // Remove the client from the map on disconnect
     target.addEventListener("close", () => {
-        clients.delete(ctx.state.session.id);
+        messenger.removeClient(ctx.state.session.id);
     });
 });
 

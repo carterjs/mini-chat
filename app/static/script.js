@@ -34,14 +34,14 @@ chatForm.addEventListener("submit", async (e) => {
     chatId = chatInput.value;
     if (chatId) {
         const eventSource = new EventSource(`/api/chats/${chatId}/messages`);
-        eventSource.addEventListener("chatmessage", (e) => {
+        eventSource.addEventListener("chat", (e) => {
             const message = JSON.parse(e.data);
             const li = document.createElement("li");
             li.innerText = `${message.client.name}: ${message.body}`;
 
             messages.appendChild(li);
         });
-        eventSource.addEventListener("servermessage", (e) => {
+        eventSource.addEventListener("announcement", (e) => {
             const message = JSON.parse(e.data);
             const li = document.createElement("li");
             li.innerText = `(${message.body})`;
@@ -49,10 +49,14 @@ chatForm.addEventListener("submit", async (e) => {
             messages.appendChild(li);
 
         });
+        eventSource.onmessage = console.info;
         eventSource.onerror = console.error;
         eventSource.onopen = () => {
             connected.innerText = true;
         };
+        document.querySelector("#leave").addEventListener("click", () => {
+            eventSource.close();
+        });
     }
     
 });
