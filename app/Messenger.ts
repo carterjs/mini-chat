@@ -8,6 +8,7 @@ interface Client {
     target: ServerSentEventTarget;
 }
 
+/** Generic message type */
 interface Message {
     type: string;
     body: string;
