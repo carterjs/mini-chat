@@ -66,7 +66,7 @@ export default class Messenger {
         // TODO: keep chats alive in redis
         
         if (chats.size > 0) {
-            this.timer = setTimeout(this.takeAttendance.bind(this), 5000);
+            this.timer = setTimeout(this.takeAttendance.bind(this), 60000);
         } else {
             this.timer = undefined;
         }

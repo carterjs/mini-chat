@@ -49,8 +49,9 @@ chatForm.addEventListener("submit", async (e) => {
             messages.appendChild(li);
 
         });
-        eventSource.onmessage = console.info;
-        eventSource.onerror = console.error;
+        eventSource.addEventListener("error", () => {
+            console.log("Something is wrong here...");
+        });
         eventSource.onopen = () => {
             connected.innerText = true;
         };

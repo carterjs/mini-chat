@@ -98,4 +98,10 @@ router.get("/", authMiddleware, async (ctx: Context) => {
     ctx.response.body = ctx.state.session;
 });
 
+// Delete session cookie
+router.delete("/", (ctx: Context) => {
+    // Remove session cookie
+    ctx.cookies.delete("token");
+});
+
 export default router;
