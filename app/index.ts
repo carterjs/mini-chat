@@ -1,42 +1,59 @@
+import { Application, Context } from "https://deno.land/x/abc@v1.3.0/mod.ts";
 import {
-    // Oak
-    Application, Router, Context
-} from "./deps.ts";
-
-// Routers
-import sessionRouter from "./routers/session.ts";
-import chatsRouter from "./routers/chats.ts";
-
-// Messenger!
-import Messenger from "./Messenger.ts";
-
-// Instantiate the messenger
-const messenger = new Messenger();
-
-// Create oak app
+  acceptWebSocket,
+  isWebSocketCloseEvent,
+  isWebSocketPingEvent,
+  WebSocket,
+} from "https://deno.land/std@0.92.0/ws/mod.ts";
 const app = new Application();
+const port = 8080;
 
-// Pass through the messenger
-app.use(async (ctx: Context, next) => {
-    ctx.state.messenger = messenger;
-    await next();
-    // delete ctx.state.messenger;
-})
+async function handleWs(sock: WebSocket) {
+  console.log("socket connected!");
+  try {
+    for await (const ev of sock) {
+      if (typeof ev === "string") {
+        // text message.
+        console.log("ws:Text", ev);
+        await sock.send(ev);
+      } else if (ev instanceof Uint8Array) {
+        // binary message.
+        console.log("ws:Binary", ev);
+      } else if (isWebSocketPingEvent(ev)) {
+        const [, body] = ev;
+        // ping.
+        console.log("ws:Ping", body);
+      } else if (isWebSocketCloseEvent(ev)) {
+        // close.
+        const { code, reason } = ev;
+        console.log("ws:Close", code, reason);
+      }
+    }
+  } catch (err) {
+    console.error(`failed to receive frame: ${err}`);
 
-// Use session router
-app.use(sessionRouter.routes());
-app.use(sessionRouter.allowedMethods());
+    if (!sock.isClosed) {
+      await sock.close(1000).catch(console.error);
+    }
+  }
+}
 
-// Use chat router
-app.use(chatsRouter.routes());
-app.use(chatsRouter.allowedMethods());
+app
+  .get("/ws", (c) => {
+    const { conn, r: bufReader, w: bufWriter, headers } = c.req;
+    acceptWebSocket({
+      conn,
+      bufReader,
+      bufWriter,
+      headers,
+    })
+      .then(handleWs)
+      .catch(async (err) => {
+        console.error(`failed to accept websocket: ${err}`);
+        await c.req.respond({ status: 400 });
+      });
+  })
+  .static("/", "./public")
+  .start({ port });
 
-// Serve static files
-app.use(async (ctx: Context) => {
-  await ctx.send({
-    root: `${Deno.cwd()}/public`,
-    index: "index.html",
-  });
-});
-
-await app.listen({ port: 8000 });
+console.log(`server listening on http://localhost:${port}`);
