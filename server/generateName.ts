@@ -12,7 +12,10 @@ const ADJECTIVES = [
     "Cheerful",
     "Brainy",
     "Charming",
-    "Confused"
+    "Confused",
+    "Insightful",
+    "Happy",
+    "Indifferent"
 ];
 
 const NOUNS = [
@@ -30,7 +33,14 @@ const NOUNS = [
     "Pillow",
     "Television",
     "Bouquet",
-    "Moose"
+    "Moose",
+    "Hawk",
+    "Spider",
+    "Orange",
+    "Celery",
+    "Grasshopper",
+    "Lizard",
+    "Rabbit"
 ];
 
 export default function generateName() {

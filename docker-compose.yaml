@@ -2,11 +2,13 @@ services:
   redis:
     image: redis
   app:
-    build: ./app
+    build: ./
     depends_on:
       - "redis"
-    command: run --allow-net --allow-read --watch --unstable index.ts
+    environment:
+      - REDIS_URL=redis://redis:6379
+    command: run --allow-net --allow-read --allow-env --watch --unstable app.ts
     ports: 
       - "8000:8000"
     volumes: 
-      - ./app:/app
+      - ./:/app
