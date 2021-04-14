@@ -1,16 +1,51 @@
 import { RoomRole } from "./RoomRole.ts";
 import { ResponseType } from "./ResponseType.ts";
+import {
+  create, verify,
+  v4
+} from "../deps.ts";
+import { generateName } from "./generateName.ts";
 
 export class Client {
     id: string;
-    name: string;
+    authenticated = false;
+    name?: string;
     private socket: WebSocket;
     rooms: Map<string, RoomRole> = new Map();
   
-    constructor(id: string, name: string, socket: WebSocket) {
-      this.id = id;
-      this.name = name;
+    constructor(socket: WebSocket) {
+      this.id = v4.generate();
       this.socket = socket;
+    }
+
+    async setName(name = generateName()) {
+      this.name = name;
+      this.authenticated = true;
+
+      // TODO: use real secret
+      // TODO: set expiration
+      const token = await create({ alg: "HS512", typ: "JWT" }, {
+        id: this.id,
+        name: this.name
+      }, "secret");
+
+      await this.socket.send(`TOKEN "${token}"`);
+
+      return true;
+    }
+
+    async authenticate(token: string) {
+      console.log(token)
+      // TODO: use real secret
+      try {
+        const payload: any = await verify(token, "secret", "HS512");
+        this.id = payload.id;
+        this.name = payload.name;
+        this.authenticated = true;
+        return true;
+      } catch(err) {
+        return false;
+      }      
     }
   
     /**
@@ -37,8 +72,8 @@ export class Client {
      * @param senderId the id of the chat's sender
      * @param message the chat content
      */
-    async sendChat(room: string, senderId: string, message: string) {
-      await this.socket.send(`MESSAGE "${room}" "${senderId}" "${message}"`);
+    async sendChat(room: string, sender: Client, message: string) {
+      await this.socket.send(`MESSAGE "${room}" "${sender.id}" "${sender.name}" "${message}"`);
     }
   
     /**
@@ -47,8 +82,8 @@ export class Client {
      * @param senderId the sender id
      * @param message the message they'd like to send
      */
-    async sendRequest(room: string, senderId: string, message: string) {
-      await this.socket.send(`REQUEST "${room}" "${senderId}" "${message}"`);
+    async sendRequest(room: string, sender: Client, message: string) {
+      await this.socket.send(`REQUEST "${room}" "${sender.id}" "${sender.name}" "${message}"`);
     }
   
     /**
@@ -57,7 +92,9 @@ export class Client {
      * @param role the role to be given
      * @returns true if the client is added
      */
-    join(room: string, role: RoomRole = RoomRole.GUEST) {
+    join(room: string) {
+      // Get the previous role or default role
+      const role = RoomRole.MEMBER;
       if(this.rooms.has(room)) {
         return false;
       } else {
