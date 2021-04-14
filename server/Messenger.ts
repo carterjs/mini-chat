@@ -1,6 +1,6 @@
 import { Client } from "./Client.ts";
 import { v4 } from "../deps.ts";
-import generateName from "./generateName.ts";
+import {generateName} from "./generateName.ts";
 
 export class Messenger {
     clients: Client[] = [];
@@ -16,7 +16,7 @@ export class Messenger {
     sendChat(sender: Client, room: string, message: string) {
       for (let client of this.clients) {
         if(client.rooms.has(room)) {
-          client.sendChat(room, sender.id, message);
+          client.sendChat(room, sender, message);
         }
       }
     }
@@ -30,7 +30,7 @@ export class Messenger {
     async sendRequest(sender: Client, room: string, message: string) {
       for(let client of this.clients) {
         if((client.rooms.get(room) || 0) > 1) {
-          await client.sendRequest(room, sender.id, message);
+          await client.sendRequest(room, sender, message);
         }
       }
     }
@@ -56,11 +56,7 @@ export class Messenger {
      * @returns the new client
      */
     addClient(socket: WebSocket) {
-      const client = new Client(
-        v4.generate(),
-        generateName(),
-        socket
-      );
+      const client = new Client(socket);
       this.clients.push(client);
   
       return client;
