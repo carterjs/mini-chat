@@ -7,3 +7,5 @@ export {
   acceptWebSocket,
   isWebSocketCloseEvent
 } from "https://deno.land/std@0.92.0/ws/mod.ts";
+export { connect } from "https://deno.land/x/redis/mod.ts";
+export { create, verify } from "https://deno.land/x/djwt@v2.2/mod.ts";

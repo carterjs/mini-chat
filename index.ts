@@ -7,6 +7,8 @@ import {
   dirname, fromFileUrl,
   // WS
   acceptable, acceptWebSocket, isWebSocketCloseEvent,
+  // Redis
+  connect
 } from "./deps.ts";
 
 import { Messenger } from "./server/Messenger.ts";
@@ -16,7 +18,9 @@ import { parseCommand } from "./server/parseCommand.ts";
 const messenger = new Messenger();
 
 // HTTP server
-const server = serve({ port: Number(Deno.env.get("PORT")) || 8080 });
+const port = Number(Deno.env.get("PORT")) || 8080;
+const server = serve({ port });
+console.log(`Server listening on port ${port}`);
 
 function getFileContent(req: ServerRequest, partialPath: string) {
   const fullPath = `${dirname(fromFileUrl(import.meta.url))}${partialPath}`;
@@ -48,6 +52,7 @@ for await (const req: ServerRequest of server) {
             // close.
             const { code, reason } = ev;
             console.log("ws:Close", code, reason);
+            messenger.removeClient(client.id);
           } else {
             await socket.close(1007);
             messenger.removeClient(client.id);

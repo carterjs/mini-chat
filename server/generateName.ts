@@ -43,7 +43,7 @@ const NOUNS = [
     "Rabbit"
 ];
 
-export default function generateName() {
+export function generateName() {
     const adjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
     const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
 
