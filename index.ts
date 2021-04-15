@@ -1,14 +1,18 @@
 import {
+  // WS
+  acceptable,
+  acceptWebSocket,
+  // Redis
+  connect,
+  // Path
+  dirname,
+  fromFileUrl,
+  isWebSocketCloseEvent,
   // HTTP
-  serve, ServerRequest,
+  serve,
   // File server
   serveFile,
-  // Path
-  dirname, fromFileUrl,
-  // WS
-  acceptable, acceptWebSocket, isWebSocketCloseEvent,
-  // Redis
-  connect
+  ServerRequest,
 } from "./deps.ts";
 
 import { Messenger } from "./server/Messenger.ts";
@@ -22,6 +26,12 @@ const port = Number(Deno.env.get("PORT")) || 8080;
 const server = serve({ port });
 console.log(`Server listening on port ${port}`);
 
+/**
+ * Get file contents for serving if possible
+ * @param req the request object
+ * @param partialPath the absolute path assuming the root is this project's root
+ * @returns the new request object
+ */
 function getFileContent(req: ServerRequest, partialPath: string) {
   const fullPath = `${dirname(fromFileUrl(import.meta.url))}${partialPath}`;
   return serveFile(req, fullPath);
@@ -34,7 +44,7 @@ for await (const req: ServerRequest of server) {
     // Upgrade to ws connection
     const { conn, r: bufReader, w: bufWriter, headers } = req;
     acceptWebSocket({
-    	conn,
+      conn,
       bufReader,
       bufWriter,
       headers,
@@ -72,7 +82,7 @@ for await (const req: ServerRequest of server) {
     });
   } else {
     // Serve client application
-    if(req.url === "/") {
+    if (req.url === "/") {
       // index.html
       const content = await getFileContent(req, "/client/index.html");
       req.respond(content);
@@ -82,7 +92,7 @@ for await (const req: ServerRequest of server) {
         // Try to send static file content
         const content = await getFileContent(req, `/client/${req.url}`);
         req.respond(content);
-      } catch(err) {
+      } catch (err) {
         // File not found - show 404
         const content = await getFileContent(req, "/client/404.html");
         req.respond({ ...content, status: 404 });
