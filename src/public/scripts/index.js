@@ -38,7 +38,7 @@ function parseInput(input) {
 let connectionAttempts = 0;
 function connect() {
   const ws = new WebSocket(
-    `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`,
+    `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`,
   );
   connectionAttempts++;
 
