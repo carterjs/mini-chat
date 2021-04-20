@@ -33,6 +33,7 @@ function getFileContent(req: ServerRequest, partialPath: string) {
 for await (const req: ServerRequest of server) {
   if(req.url === "/ws") {
     try {
+      // Create the chat socket
       new ChatSocket(await acceptSocket(req));
     } catch(err) {
       console.error("Failed to accept socket");

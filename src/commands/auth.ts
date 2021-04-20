@@ -14,13 +14,6 @@ const authCommands: CommandDefinitions = {
         const oldName = socket.name;
         try {
             await socket.migrate(token);
-
-            await socket.sendList("NAME", socket.name!);
-
-            if(oldName && socket.room) {
-                await socket.broadcastList("ANNOUNCEMENT", `${oldName} is now ${socket.name!}`);
-            }
-
         } catch(err) {
             await socket.sendList("ERROR", err.message);
         }
@@ -29,12 +22,6 @@ const authCommands: CommandDefinitions = {
         const oldName = socket.name;
         try {
             await socket.setName(name);
-
-            await socket.sendList("NAME", name);
-
-            if(socket.room) {
-                await socket.broadcastList("ANNOUNCEMENT", `${oldName} is now ${name}`);
-            }
         } catch(err) {
             socket.sendList("ERROR", err.message);
         }

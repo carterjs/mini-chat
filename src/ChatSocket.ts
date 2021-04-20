@@ -28,6 +28,13 @@ export class ChatSocket extends Socket {
         // Stop tracking socket on close
         this.on("close", () => {
             sockets.delete(this.id);
+
+            // Notify others
+            for(let [,socket] of sockets) {
+                if(socket.room === this.room) {
+                    socket.sendList("ANNOUNCEMENT", `${this.name} diconnected`);
+                }
+            }
         });
 
         // Handle text messages as commands
@@ -67,7 +74,7 @@ export class ChatSocket extends Socket {
      * Send a message to all clients in the same room
      * @param message the message to send
      */
-    async broadcastList(...messages: string[]) {
+    async broadcastChat(message: string) {
         if(!this.room) {
             throw new Error("You're not in a room");
         }
@@ -75,7 +82,7 @@ export class ChatSocket extends Socket {
         // Send to all clients in the room
         for(let [,socket] of sockets) {
             if(socket.room === this.room) {
-                socket.sendList(...messages);
+                socket.sendList("CHAT", this.id, this.name!, message);
             }
         }
     }
@@ -104,6 +111,8 @@ export class ChatSocket extends Socket {
      * @returns true if successful
      */
     async setName(name = generateName()) {
+        const oldName = this.name;
+
         // TODO: validate name format
         this.name = name;
 
@@ -113,7 +122,14 @@ export class ChatSocket extends Socket {
         // Notify the client
         await this.sendList("TOKEN", token);
 
-        // Notify others in the room
+        if(this.room) {
+            // Send to all clients in the room
+            for(let [,socket] of sockets) {
+                if(socket.room === this.room) {
+                    socket.sendList("ANNOUNCEMENT", `${oldName} is now ${name}`);
+                }
+            }
+        }
 
         return true;
     }
@@ -124,30 +140,81 @@ export class ChatSocket extends Socket {
      * @returns true if successful
      */
     async migrate(token: string) {
+        const oldName = this.name;
+
         // TODO: use real secret
         try {
             const payload: any = await verify(token, "secret", "HS512");
             this.id = payload.id;
             this.name = payload.name;
+
+            await this.sendList("NAME", this.name!);
+
+            if(this.room) {
+                // Send to all clients in the room
+                for(let [,socket] of sockets) {
+                    if(socket.room === this.room) {
+                        socket.sendList("ANNOUNCEMENT", `${oldName} is now ${this.name}`);
+                    }
+                }
+            }
         } catch (err) {
             throw new Error("Unable to verify token");
         }
     }
 
-    join(room: string) {
+    /**
+     * Join a room and notify participants
+     * @param room the room to join
+     */
+    async join(room: string) {
         if(!this.name) {
             throw new Error("You need to set a name before joining a room");
         }
 
+        const oldRoom = this.room;
         this.room = room;
+
+        // Leave room if they're in one
+        if(oldRoom) {
+             // Notify others
+            for(let [,socket] of sockets) {
+                if(socket.room === oldRoom) {
+                    await socket.sendList("ANNOUNCEMENT", `${this.name} went to ${room}`);
+                }
+            }
+        }
+
+        await this.sendList("ROOM", room);
+
+        // Notify others
+        for(let [,socket] of sockets) {
+            if(socket.room === room) {
+                await socket.sendList("ANNOUNCEMENT", `${this.name} joined the room`);
+            }
+        }
     }
 
-    leave() {
+    /**
+     * Leave a room and notify participants
+     */
+    async leave() {
         if(!this.room) {
             throw new Error("You're not in a room");
         }
 
+        const room = this.room;
+
+        await this.sendList("ROOM");
+
         this.room = null;
+
+        // Notify others
+        for(let [,socket] of sockets) {
+            if(socket.room === room) {
+                socket.sendList("ANNOUNCEMENT", `${this.name} left the room`);
+            }
+        }
     }
 
 }

@@ -9,37 +9,29 @@ const roomCommands: CommandDefinitions = {
         }
     },
     "join": async (socket, room: string) => {
-        // Make sure they're authenticated
-        if(!socket.name) {
-            socket.sendList("ERROR", "You need to set a name before you can join a room");
+
+        if(!room) {
+            await socket.sendList("ERROR", "You must provide a room to join");
             return;
         }
 
         try {
             await socket.join(room);
-
-            // Notify client
-            await socket.sendList("ROOM", room);
-
-            // Notify other clients
-            await socket.broadcastList("ANNOUNCEMENT", `${socket.name!} joined the room`);
         } catch(err) {
             // Send error
             await socket.sendList("ERROR", err.message);
         }
     },
     "leave": async (socket) => {
-        if(socket.room) {
-            await socket.sendList("ROOM", "");
-            await socket.broadcastList("ANNOUNCEMENT", `${socket.name!} left the room`);
+        try {
             socket.leave();
-        } else {
-            socket.sendList("ERROR", "You're not in a room");
+        } catch(err) {
+            socket.sendList("ERROR", err.message);
         }
     },
     "send": async (socket, message: string) => {
         try {
-            await socket.broadcastList("CHAT", socket.id, socket.name!, message);
+            await socket.broadcastChat(message);
         } catch(err) {
             socket.sendList("ERROR", err.message);
         }
