@@ -1,44 +1,47 @@
-import { CommandDefinitions } from "../../lib/WebSocketHandler/index.ts";
-import { CustomSocket } from "../CustomSocket.ts";
+import { CommandDefinitions } from "./types.ts";
 
-const roomCommands: CommandDefinitions<CustomSocket> = {
+const roomCommands: CommandDefinitions = {
     "room": async (socket) => {
         if(socket.room) {
-            await socket.send("SUCCESS", `You're in "${socket.room}"`);
+            await socket.sendList("SUCCESS", `You're in "${socket.room}"`);
         } else {
-            await socket.send("ERROR", "You're not in a room");
+            await socket.sendList("ERROR", "You're not in a room");
         }
     },
     "join": async (socket, room: string) => {
         // Make sure they're authenticated
         if(!socket.name) {
-            socket.send("ERROR", "You need to set a name before you can join a room");
+            socket.sendList("ERROR", "You need to set a name before you can join a room");
             return;
         }
 
         try {
             await socket.join(room);
 
-            await socket.send("ROOM", room);
-            await socket.broadcast("ANNOUNCEMENT", `${socket.name} joined the room`)
+            // Notify client
+            await socket.sendList("ROOM", room);
+
+            // Notify other clients
+            await socket.broadcastList("ANNOUNCEMENT", `${socket.name!} joined the room`);
         } catch(err) {
-            await socket.send("ERROR", err.message);
+            // Send error
+            await socket.sendList("ERROR", err.message);
         }
     },
     "leave": async (socket) => {
         if(socket.room) {
-            await socket.send("ROOM", "");
-            await socket.broadcast("ANNOUNCEMENT", `${socket.name} left`);
-            socket.room = null;
+            await socket.sendList("ROOM", "");
+            await socket.broadcastList("ANNOUNCEMENT", `${socket.name!} left the room`);
+            socket.leave();
         } else {
-            socket.send("ERROR", "You're not in a room");
+            socket.sendList("ERROR", "You're not in a room");
         }
     },
     "send": async (socket, message: string) => {
         try {
-            await socket.sendChat(message);
+            await socket.broadcastList("CHAT", socket.id, socket.name!, message);
         } catch(err) {
-            socket.send("ERROR", err.message);
+            socket.sendList("ERROR", err.message);
         }
     }
 }

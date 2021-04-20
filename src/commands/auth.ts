@@ -1,14 +1,13 @@
-import { CommandDefinitions } from "../../lib/WebSocketHandler/index.ts";
-import { CustomSocket } from "../CustomSocket.ts";
+import { CommandDefinitions } from "./types.ts";
 
-const authCommands: CommandDefinitions<CustomSocket> = {
+const authCommands: CommandDefinitions = {
     "token": async (socket) => {
         try {
             const token = await socket.generateToken();
 
-            socket.send("TOKEN", token);
+            socket.sendList("TOKEN", token);
         } catch(err) {
-            socket.send("ERROR", err.message);
+            socket.sendList("ERROR", err.message);
         }
     },
     "migrate": async (socket, token: string) => {
@@ -16,15 +15,14 @@ const authCommands: CommandDefinitions<CustomSocket> = {
         try {
             await socket.migrate(token);
 
-            await socket.send("NAME", socket.name);
+            await socket.sendList("NAME", socket.name!);
 
             if(oldName && socket.room) {
-                // Already in a room, notify of name change
-                await socket.broadcast("ANNOUNCEMENT", `${oldName} is now ${socket.name}`);
+                await socket.broadcastList("ANNOUNCEMENT", `${oldName} is now ${socket.name!}`);
             }
 
         } catch(err) {
-            await socket.send("ERROR", err.message);
+            await socket.sendList("ERROR", err.message);
         }
     },
     "setname": async (socket, name: string) => {
@@ -32,17 +30,17 @@ const authCommands: CommandDefinitions<CustomSocket> = {
         try {
             await socket.setName(name);
 
-            await socket.send("NAME", name);
+            await socket.sendList("NAME", name);
 
             if(socket.room) {
-                await socket.broadcast("ANNOUNCEMENT", `${oldName} is now ${socket.name}`);
+                await socket.broadcastList("ANNOUNCEMENT", `${oldName} is now ${name}`);
             }
         } catch(err) {
-            socket.send("ERROR", err.message);
+            socket.sendList("ERROR", err.message);
         }
     },
     "name": (socket) => {
-        socket.send("NAME", socket.name || "You don't have a name")
+        socket.sendList("NAME", socket.name || "You don't have a name")
     }
 }
 

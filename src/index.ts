@@ -9,12 +9,9 @@ import {
   ServerRequest,
 } from "./deps.ts";
 
-import { CustomSocket } from "./CustomSocket.ts";
-import { WebSocketHandler } from "../lib/WebSocketHandler/index.ts";
+import { acceptSocket } from "../lib/Socket/acceptSocket.ts";
 
-import commands from "./commands/index.ts";
-
-const webSocketHandler = new WebSocketHandler<CustomSocket>(commands, (ws) => new CustomSocket(ws));
+import { ChatSocket } from "./ChatSocket.ts";
 
 // HTTP server
 const port = Number(Deno.env.get("PORT")) || 8080;
@@ -35,7 +32,12 @@ function getFileContent(req: ServerRequest, partialPath: string) {
 // Handle all http reqeusts
 for await (const req: ServerRequest of server) {
   if(req.url === "/ws") {
-    webSocketHandler.accept(req);
+    try {
+      new ChatSocket(await acceptSocket(req));
+    } catch(err) {
+      console.error("Failed to accept socket");
+      await req.respond({ status: 400 });
+    }
   } else {
     // Serve client application
     if (req.url === "/") {
