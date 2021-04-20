@@ -8,6 +8,36 @@ import commands from "./commands/index.ts";
 
 let sockets: Map<string, ChatSocket> = new Map();
 
+/**
+ * Join a list of messages
+ * @param messages a number of messages
+ * @returns all messages in a space-delimited list (quotes to separate multi-word messages)
+ */
+export function merge(...messages: string[]): string {
+    return messages.map((message) => {
+        // Quote components with spaces
+        if(`${message}`.includes(" ")) {
+            return `"${message}"`;
+        }
+
+        return message;
+    }).join(" ");
+}
+
+/**
+ * Send a message to all sockets in a room
+ * @param room the room to broadcast to
+ * @param message the message to send
+ */
+function broadcast(room: string, message: string) {
+    // Notify others
+    for(let [,socket] of sockets) {
+        if(socket.room === room) {
+            socket.send(message);
+        }
+    }
+}
+
 export class ChatSocket extends Socket {
     /**
      * The chat socket's name
@@ -28,12 +58,8 @@ export class ChatSocket extends Socket {
         // Stop tracking socket on close
         this.on("close", () => {
             sockets.delete(this.id);
-
-            // Notify others
-            for(let [,socket] of sockets) {
-                if(socket.room === this.room) {
-                    socket.sendList("ANNOUNCEMENT", `${this.name} diconnected`);
-                }
+            if(this.room) {
+                broadcast(this.room, merge("LEAVE", this.id, this.name!));
             }
         });
 
@@ -46,28 +72,9 @@ export class ChatSocket extends Socket {
             if(resolver) {
                 resolver(this, ...args.slice(1));
             } else {
-                await this.sendList("ERROR", `Invalid command "${args[0]}"`);
+                await this.send(merge("ERROR", `Invalid command "${args[0]}"`));
             }
         });
-    }
-
-    /**
-     * Send a space-delimited list of responses
-     * @param components the components (like arguments)
-     */
-    async sendList(...messages: string[]) {
-        // Construct space-delimited message
-        const list = messages.map((message) => {
-            // Quote components with spaces
-            if(`${message}`.includes(" ")) {
-                return `"${message}"`;
-            }
-
-            return message;
-        }).join(" ");
-
-        // Send the string
-        await this.send(list);
     }
 
     /**
@@ -79,12 +86,7 @@ export class ChatSocket extends Socket {
             throw new Error("You're not in a room");
         }
 
-        // Send to all clients in the room
-        for(let [,socket] of sockets) {
-            if(socket.room === this.room) {
-                socket.sendList("CHAT", this.id, this.name!, message);
-            }
-        }
+        broadcast(this.room, merge("CHAT", this.id, this.name!, message));
     }
 
     /**
@@ -120,15 +122,12 @@ export class ChatSocket extends Socket {
         const token = await this.generateToken();
 
         // Notify the client
-        await this.sendList("TOKEN", token);
+        await this.send(merge("NAME", name));
+        await this.send(merge("TOKEN", token));
 
         if(this.room) {
             // Send to all clients in the room
-            for(let [,socket] of sockets) {
-                if(socket.room === this.room) {
-                    socket.sendList("ANNOUNCEMENT", `${oldName} is now ${name}`);
-                }
-            }
+            broadcast(this.room, merge("NAME", this.id, this.name));
         }
 
         return true;
@@ -148,15 +147,11 @@ export class ChatSocket extends Socket {
             this.id = payload.id;
             this.name = payload.name;
 
-            await this.sendList("NAME", this.name!);
+            await this.send(merge("NAME", this.name!));
 
             if(this.room) {
                 // Send to all clients in the room
-                for(let [,socket] of sockets) {
-                    if(socket.room === this.room) {
-                        socket.sendList("ANNOUNCEMENT", `${oldName} is now ${this.name}`);
-                    }
-                }
+                broadcast(this.room, merge("NAME", this.id, this.name!));
             }
         } catch (err) {
             throw new Error("Unable to verify token");
@@ -177,22 +172,14 @@ export class ChatSocket extends Socket {
 
         // Leave room if they're in one
         if(oldRoom) {
-             // Notify others
-            for(let [,socket] of sockets) {
-                if(socket.room === oldRoom) {
-                    await socket.sendList("ANNOUNCEMENT", `${this.name} went to ${room}`);
-                }
-            }
+            // Notify others
+            broadcast(oldRoom, merge("LEAVE", this.id, this.name));
         }
 
-        await this.sendList("ROOM", room);
+        await this.send(merge("ROOM", room));
 
         // Notify others
-        for(let [,socket] of sockets) {
-            if(socket.room === room) {
-                await socket.sendList("ANNOUNCEMENT", `${this.name} joined the room`);
-            }
-        }
+        broadcast(room, merge("JOIN", this.id, this.name!));
     }
 
     /**
@@ -205,16 +192,12 @@ export class ChatSocket extends Socket {
 
         const room = this.room;
 
-        await this.sendList("ROOM");
+        await this.send("ROOM");
 
         this.room = null;
 
         // Notify others
-        for(let [,socket] of sockets) {
-            if(socket.room === room) {
-                socket.sendList("ANNOUNCEMENT", `${this.name} left the room`);
-            }
-        }
+        broadcast(room, merge("LEAVE", this.id, this.name!));
     }
 
 }

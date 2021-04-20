@@ -5,9 +5,9 @@ const authCommands: CommandDefinitions = {
         try {
             const token = await socket.generateToken();
 
-            socket.sendList("TOKEN", token);
+            socket.send(`TOKEN ${token}`);
         } catch(err) {
-            socket.sendList("ERROR", err.message);
+            socket.send(`ERROR "${err.message}"`);
         }
     },
     "migrate": async (socket, token: string) => {
@@ -15,7 +15,7 @@ const authCommands: CommandDefinitions = {
         try {
             await socket.migrate(token);
         } catch(err) {
-            await socket.sendList("ERROR", err.message);
+            await socket.send(`ERROR "${err.message}"`);
         }
     },
     "setname": async (socket, name: string) => {
@@ -23,11 +23,11 @@ const authCommands: CommandDefinitions = {
         try {
             await socket.setName(name);
         } catch(err) {
-            socket.sendList("ERROR", err.message);
+            socket.send(`ERROR "${err.message}"`);
         }
     },
     "name": (socket) => {
-        socket.sendList("NAME", socket.name || "You don't have a name")
+        socket.send(`SUCCESS "${socket.name ? `Your name is ${socket.name}` : "You don't have a name" }"`)
     }
 }
 
