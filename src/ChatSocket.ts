@@ -6,7 +6,14 @@ import { WebSocket } from "https://deno.land/std@0.92.0/ws/mod.ts";
 
 import commands from "./commands/index.ts";
 
+/** The list of all connected sockets */
 let sockets: Map<string, ChatSocket> = new Map();
+
+// Make sure there's a JWT_SECRET
+const JWT_SECRET = Deno.env.get("JWT_SECRET");
+if(!JWT_SECRET) {
+    throw new Error("You must provide a JWT_SECRET environment variable");
+}
 
 /**
  * Join a list of messages
@@ -98,11 +105,10 @@ export class ChatSocket extends Socket {
             throw new Error("You need to set a name");
         }
         // TODO: add expiration and whatever
-        // TODO: add real secret duh
         const token = await create({ alg: "HS512", typ: "JWT" }, {
             id: this.id,
             name: this.name
-        }, "secret");
+        }, JWT_SECRET!);
 
         return token;
     }
@@ -115,7 +121,7 @@ export class ChatSocket extends Socket {
     async setName(name = generateName()) {
         const oldName = this.name;
 
-        // TODO: validate name format
+        // TODO: validate name format and length
         this.name = name;
 
         // Generate the new token
@@ -141,9 +147,8 @@ export class ChatSocket extends Socket {
     async migrate(token: string) {
         const oldName = this.name;
 
-        // TODO: use real secret
         try {
-            const payload: any = await verify(token, "secret", "HS512");
+            const payload: any = await verify(token, JWT_SECRET!, "HS512");
             this.id = payload.id;
             this.name = payload.name;
 

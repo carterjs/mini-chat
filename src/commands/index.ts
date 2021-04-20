@@ -14,6 +14,7 @@ const commands: CommandDefinitions = {
 // Make all keys uppercase
 const normalizedCommands = Object.keys(commands).reduce((obj, key) => { return { ...obj, [key.toUpperCase()]: commands[key] } }, {});
 
+// TODO: switch to objects?
 // Transform command definitions into a map
 const commandMap = new Map<string, CommandResolver>(Object.entries(normalizedCommands));
 

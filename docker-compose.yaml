@@ -7,7 +7,7 @@ services:
       - "redis"
     environment:
       - REDIS_URL=redis://redis:6379
-    command: run --allow-net --allow-read --allow-env --watch --unstable index.ts
+    command: run --allow-net --allow-read --allow-env --watch --unstable src/index.ts
     ports: 
       - "8000:8000"
     volumes: 

@@ -9,8 +9,10 @@ import {
   ServerRequest,
 } from "./deps.ts";
 
-import { acceptSocket } from "../lib/Socket/acceptSocket.ts";
+// Load in environment variables
+import "https://deno.land/x/dotenv/load.ts";
 
+import { acceptSocket } from "../lib/Socket/acceptSocket.ts";
 import { ChatSocket } from "./ChatSocket.ts";
 
 // HTTP server
