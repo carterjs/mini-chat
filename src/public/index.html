@@ -4,23 +4,29 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat</title>
-    <link rel="stylesheet" href="./styles/index.css">
+    <title>carterjs chat</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/index.css">
 </head>
 <body>
-    <div id="wrapper">
-        <header id="header">
-            <h1 class="room">CarterJS Chat</h1>
-            <span class="spacer"></span>
-            <button onclick="send('/qr')">Get link</button>
-        </header>
-        <div id="messages"></div>
-        <form id="form">
-            <label for="input">Message or Command</label>
-            <input type="text" name="input">
-            <button type="submit">Send</button>
-        </form>
-    </div>
-    <script src="./scripts/index.js"></script>
+    <header class="header">
+        <h1 class="header__title">carterjs chat</h1>
+    </header>
+    <main class="main">
+        <div class="container container--narrow">
+            <div class="card">
+                <h2>join a room</h2>
+                <p>chat freely with others, share secrets, and embrace the chaos that is the internet.</p>
+                <form>
+                    <input type="text" name="room">
+                    <button type="submit">join</button>
+                </form>
+            </div>
+        </div>
+    </main>
+    <footer class="footer">
+        <small>&copy; 2021 Carter J. Schmalzle</small>
+    </footer>
+    <script src="/scripts/index.js"></script>
 </body>
 </html>
