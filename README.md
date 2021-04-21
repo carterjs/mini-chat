@@ -1,42 +1,62 @@
-[![Work in Repl.it](https://classroom.github.com/assets/work-in-replit-14baed9a392b3a25080506f3b7b6d57f295ec2978f6f33ec97e36a161684cbe9.svg)](https://classroom.github.com/online_ide?assignment_repo_id=389073&assignment_repo_type=GroupAssignmentRepo)
+# CarterJS Chat
 
-# Final Project
-
-## Due Friday, May 7, 2021
-
-### Build a web app in a team of 5-6
+Created by Carter J. Schmalzle
 
 ### Requirements:
 
-- Must have user accounts and different user roles
-- Must use a database
-- Must have interactive UI
-- Must use a library or framework not discussed/used in class
-- Must use an outside REST API in some way
-- Must deploy your application in some publicly accessible way (Heroku, Digital
+- [ ] Must have user accounts and different user roles
+  - What I have should work. Need to finish the roles and make sure they persist and have some different abilities.
+- [ ] Must use a database
+  - Plan: connect Redis for Pub/Sub and use to store the roles for each chat. Expire role information after a given time, but refresh the expiry regularly if anyone is in the chat.
+- [ ] Must have interactive UI
+  - Plan: plain old HTML to make the simplest chat interface possible with slash commands. History and completion would be nice, but are not necessary.
+- [x] Must use a library or framework not discussed/used in class
+- [ ] Must use an outside REST API in some way
+  - Need to confirm, but I'd like to just do the QR code thing and nothing else. Could additionally add more slash commands or the ability to add custom slash commands.
+- [ ] Must deploy your application in some publicly accessible way (Heroku, Digital
   Ocean, AWS, etc)
+  - Plan: deploy to Google Cloud Run. Not sure how that will work with Redis subscriptions since it scales to 0. It also only recently got support for websockets, so hopefully that works. Sticky sessions are probably a must.
+
+### Plan
+
+The plan is to build a chat app with a focus on in-the-moment communication. Authentication will be limited and it will be ideal for quickly jumping into a chat. Every chat will be sharable by a link so that anyone can simply click a link or scan a QR code and immediately be in a chat.
+
+There will be very basic user roles. The first person to join a chat at a particular URL will be made the owner. They can then set other people up to be moderators, and the rest of the people in the chat will be guests.
+
+Each person will have a name, but it may be a randomly generated one. Names do not need to be unique, but I may add some sort of clarification mechanism to prevent stealing identities. Each user will have a unique ID that will be sent with all interactions so that there will be no confusion there.
+
+Sessions will be managed with JSON Web Tokens (JWTs). Whenever the user changes their name or requests a token refresh, they will receive a new token with the same id and their current name. Next time they join, they can use that token to authenticate and maintain the same ID and name.
+
+A websocket server will be built with [Deno](https://deno.land/) and the client application will be simple vanilla HTML, CSS, and JavaScript. [Redis](https://redis.io/) will be used for communication between the instances of this horizontally-scalable app and to store the user roles for each chat. When everyone has left a particular chat, the roles will reset and anyone who joins next would gain control over the chat.
 
 ### Instructions
 
-Build your team and write a document describing your application to me by Wed,
-March 31, 2021. I will approve your web application idea. In your paper,
-include:
+#### Running With Docker
 
-- the name of your application
-- name and roles of all your team members
-- its functionality
-- user story/use case
-- technical design
-- tools/libraries/frameworks you will use
+The easiest way to run this project is with Docker. Simply run `docker-compose up`.
 
-### Final deliverable:
+Unfortunately for me, Deno's file watching system doesn't seem to work on the new Apple Silicon computers while also running within a Docker container. It seems to work fine on other architectures, but since it doesn't work on my main computer, the live reloading isn't enabled when in the Docker environment.
 
-- Codebase in Github Repo
-- README describing your project, with all of the information outlined above
-  (team members, application name, description, etc). You will also include
-  detailed instructions of how to install and run your application, and what API
-  keys, databases, etc are needed to run your application. You will also provide
-  a link to a live demo of your application.
-- Final Presentation and Demo
-  - You will prepare a 5 minute presentation and demo of your application in
-    class during during a zoom call with me (during finals week)
+#### Standard Development Environment
+
+To start the server, you will also need to be running Redis. The following command can be used to start Redis in docker:
+```
+docker run -it -p "6379:6379" redis
+```
+
+You'll then want to provide the connection information to the server through a `.env` file. An example is given. You will need to supply the environment variables `PORT`, `REDIS_HOST`, `REDIS_PORT`, and `JWT_SECRET`.
+
+Now, you should be able to run the server using Deno. The following command runs the server with automatic reloading enabled:
+```
+deno run --allow-net --allow-read --allow-env --watch --unstable src/index.ts
+```
+
+The server should then be available on localhost at the port you specified in `.env`'s `PORT`.
+
+#### Running Without Docker
+
+If you don't have Docker, you will have to install both Deno and Redis. 
+
+Both are easy to install and shouldn't take long. [Here are instructions for Deno](https://deno.land/manual/getting_started/installation) and [here are some instructions for Redis](https://redis.io/topics/quickstart).
+
+Once they're both installed, the Deno commands will be the same as above, and I think running `redis-server` will start the Redis server on the default port 6379. I've never done it this way since I don't like installing things on my computer if I can avoid it.
