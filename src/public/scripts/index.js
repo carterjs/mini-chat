@@ -7,7 +7,7 @@ formEl.onsubmit = function (e) {
 
 const inputEl = document.querySelector("input");
 
-const displayEl = document.querySelector("div");
+const displayEl = document.querySelector("#messages");
 
 function renderMessage(message) {
   const p = document.createElement("p");
@@ -16,6 +16,7 @@ function renderMessage(message) {
 }
 
 function parseInput(input) {
+  console.log(input);
   // Validate input length
   if (input.length > 255) {
     throw new Error("Input is too large");
@@ -35,9 +36,22 @@ function parseInput(input) {
   }
 }
 
+function send(input) {
+  if(!ws) {
+    throw new Error("No websocket connected");
+  }
+
+  // Get command from input
+  const command = parseInput(input);
+
+  // Send command off to server
+  ws.send(command);
+}
+
 let connectionAttempts = 0;
+let ws;
 function connect() {
-  const ws = new WebSocket(
+  ws = new WebSocket(
     `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`,
   );
   connectionAttempts++;
@@ -49,22 +63,17 @@ function connect() {
     formEl.onsubmit = function (e) {
       e.preventDefault();
 
-      // Get command from input
       try {
-        const command = parseInput(inputEl.value);
-
+        send(inputEl.value);
         // Clear input
         inputEl.value = "";
-
-        // Send command off to server
-        ws.send(command);
-      } catch (err) {
-        console.error(err.message);
+      } catch(err) { 
+        console.error(err);
       }
     };
   };
   ws.onclose = function (e) {
-    console.log(e);
+    ws = null;
     // Do nothing for form submissions without connection
     formEl.onsubmit = function (e) {
       e.preventDefault();

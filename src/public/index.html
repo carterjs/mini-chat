@@ -8,12 +8,19 @@
     <link rel="stylesheet" href="./styles/index.css">
 </head>
 <body>
-    <form>
-        <label for="input">Message or Command</label>
-        <input type="text" name="input">
-        <button type="submit">Send</button>
-    </form>
-    <div></div>
+    <div id="wrapper">
+        <header id="header">
+            <h1 class="room">CarterJS Chat</h1>
+            <span class="spacer"></span>
+            <button onclick="send('/qr')">Get link</button>
+        </header>
+        <div id="messages"></div>
+        <form id="form">
+            <label for="input">Message or Command</label>
+            <input type="text" name="input">
+            <button type="submit">Send</button>
+        </form>
+    </div>
     <script src="./scripts/index.js"></script>
 </body>
 </html>
