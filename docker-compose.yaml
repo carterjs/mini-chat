@@ -6,10 +6,10 @@ services:
     depends_on:
       - "redis"
     environment:
-      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - PORT=8080
       - JWT_SECRET=not_a_good_secret
-    command: run --allow-net --allow-read --allow-env --watch --unstable /app/src/index.ts
     ports: 
       - "8080:8080"
     volumes: 
