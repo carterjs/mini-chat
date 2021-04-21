@@ -7,8 +7,10 @@ services:
       - "redis"
     environment:
       - REDIS_URL=redis://redis:6379
-    command: run --allow-net --allow-read --allow-env --watch --unstable src/index.ts
+      - PORT=8080
+      - JWT_SECRET=not_a_good_secret
+    command: run --allow-net --allow-read --allow-env --watch --unstable /app/src/index.ts
     ports: 
-      - "8000:8000"
+      - "8080:8080"
     volumes: 
       - ./:/app
