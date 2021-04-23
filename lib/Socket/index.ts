@@ -11,6 +11,7 @@ export enum Event {
   Text = "TEXT",
   Binary = "BINARY",
   Ping = "PING",
+  Open = "OPEN",
   Close = "CLOSE",
 }
 
@@ -52,6 +53,7 @@ export class Socket {
   }
 
   private async listenOnSocket() {
+    this.handleEvent(Event.Open, null);
     // Handle socket events
     try {
       // Handle socket events

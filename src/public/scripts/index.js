@@ -6,6 +6,8 @@ let name;
 let id;
 let room;
 
+let users = new Map();
+
 function sendInput() {
   try {
     send(inputElement.innerText);
@@ -51,7 +53,7 @@ function send(input) {
  * @param {string} message the message from the server
  * @returns an array of all of the components of the message
  */
-function parseResponse(message) {
+function parseList(message) {
    // Break the message list into an array of messages
    const components = (message.match(/("[^"]*")|[^"\s]+/g)||[]).map((component) => {
       // Remove quote characters
@@ -64,103 +66,97 @@ function parseResponse(message) {
   return components;
 }
 
-function renderMessage(rawMessage) {
-  // Break the message list into an array of messages
-  const components = (rawMessage.match(/("[^"]*")|[^"\s]+/g)||[]).map((component) => {
-    // Remove quote characters
-    if(component.startsWith('"')) {
-        return component.slice(1,-1);
-    }
-    return component;
-  });
-  
-  // Create the message element
-  const message = document.createElement("p");
+function renderMessage(style, message) {
+  const messageElement = document.createElement("p");
+  messageElement.className = `message message--${style}`;
+  messageElement.innerText = message;
+  messages.appendChild(messageElement);
+  messageElement.scrollIntoView();
+}
+
+
+function handleMessage(rawMessage) {
+  const components = parseList(rawMessage);
 
   // Add classes and content
   switch(components[0]) {
-    case "INFO":
-      message.className = "message message--info";
-      message.textContent = components[1];
-      break;
-    case "ERROR":
-      message.className = "message message--error";
-      message.textContent = components[1];
-      break;
-    case "WARNING":
-      message.className = "message message--warning";
-      message.textContent = components[1];
-      break;
+    /* Server responses */
     case "SUCCESS":
-      message.className = "message message--success";
-      message.textContent = components[1];
+    case "WARNING":
+    case "ERROR":
+      renderMessage(components[0].toLowerCase(), components[1]);
       break;
-    case "CHAT": {
-      message.className = "message";
-      const sender = document.createElement("strong");
-      sender.className = "message__sender";
-      sender.textContent = components[2];
-      message.appendChild(sender);
-      message.appendChild(document.createTextNode(components[3]));
-      break;
-    }
-    case "ROOM":
-      console.log(components);
-      if(components[1]) {
-        // In a new room
-        room = components[1];
-        location.hash = `#${room}`;
-        messages.innerHTML = "";
-        return;
-      } else {
-        // Left a room
-        room = null;
-        location.hash = "#";
-        message.className = "message message--info";
-        message.textContent = "You left";
+
+    /* Identification */
+    case "ID":
+      if(!id && location.hash.length > 1) {
+        // First time identifying and there's a hash - join the room
+        send(`/JOIN ${location.hash.slice(1)}`);
       }
+
+      // Remember id
+      id = components[1];
+      return;
+    case "NAME":
+      name = components[1];
       break;
     case "TOKEN":
+      // Save token in local storage
       localStorage.setItem("token", components[1]);
       return;
-    case "USER":
-      console.log(`User with id ${components[1]} has name ${components[2]}`);
-      return;
-    case "SELF":
-      if(!id) {
-        // First time getting user data - save it
-        id = components[1];
-        name = components[2];
 
-        // Join hash room if it's there
-        if(location.hash.length > 1) {
-          // console.log("Should join", location.hash);
-          send(`/JOIN ${location.hash.slice(1)}`);
-        }
+    /* Room */
+    case "ROOM": {
+      if(components[1]) {
+        room = components[1];
+      } else {
+        // Left the room
+        room = null;
+        renderMessage("event", "You left");
       }
+      return;
+    }
+    case "JOINED":
+      // Notify user
+      renderMessage("event", `${components[2]} joined`);
       break;
-    case "QR":
-      message.className = "message message--success";
-      message.textContent = components[1];
+    case "LEFT":
+      // Notify user
+      renderMessage("event", `${components[2]} left`);
+      return;
+    case "SETNAME":
+      // Notify user
+      renderMessage("info", `${components[2]} is now ${components[3]}`);
+      return;
+    case "MIGRATED":
+      // Notify user
+      renderMessage("info", `${components[2]} is now ${components[4]}`);
+      return;
+    case "CHAT": {
+      // Create chat message container
+      const message = document.createElement("p");
+      message.className = "message message--chat";
+
+      // Add the sender
+      const sender = document.createElement("strong");
+      sender.className = "message__sender";
+      sender.innerText = components[2];
+
+      // Append sender and message content
+      message.appendChild(sender);
+      message.appendChild(document.createTextNode(components[3]));
+
+      // Add to page
+      messages.appendChild(message);
+      message.scrollIntoView();
       break;
-    case "JOIN":
-      message.className = "message message--info";
-      message.textContent = `${components[2]} joined the room`;
-      break;
-    case "LEAVE":
-      message.className = "message message--info";
-      message.textContent = `${components[2]} left the room`;
-      break;
+    }
+
+    /* No matching type */
     default:
-      message.className = "message message--unknown";
-      message.textContent = components.join(" ");
+      console.error(`Unknown message type: ${components[0]}`);
+    
   }
-
-  console.log("rendering message");
-
-  // Add the message to the page
-  messages.appendChild(message);
-  message.scrollIntoView();
 }
 
 let connectionAttempts = 0;
@@ -219,7 +215,7 @@ function connect() {
 
   // Receive messages
   ws.onmessage = function(e) {
-    renderMessage(e.data);
+    handleMessage(e.data);
   };
 }
 

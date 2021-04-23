@@ -62,12 +62,14 @@ export class ChatSocket extends Socket {
         // Add to pool
         sockets.set(this.id, this);
 
+        // Send ID on open
+        this.on("open", async () => {
+            await socket.send(merge("ID", this.id));
+        });
+
         // Stop tracking socket on close
-        this.on("close", () => {
-            console.log("Closing time");
-            console.log(sockets);
-            console.log(sockets.has(this.id));
-            console.log("del", sockets.delete(this.id));
+        this.on("close", async () => {
+            sockets.delete(this.id);
             if(this.room) {
                 broadcast(this.room, merge("LEAVE", this.id, this.name!));
             }
@@ -132,13 +134,12 @@ export class ChatSocket extends Socket {
 
         // Notify the client
         await this.send(merge("TOKEN", token));
-        await this.send(merge("SELF", this.id, this.name));
+        await this.send(merge("ID", this.id));
+        await this.send(merge("NAME", this.name));
 
         if(this.room) {
             // Send to all clients in the room
-            broadcast(this.room, merge("NAME", this.id, this.name));
-        } else {
-            await this.send(merge("NAME", this.id, this.name));
+            broadcast(this.room, merge("SETNAME", this.id, oldName!, this.name));
         }
 
         return true;
@@ -151,6 +152,7 @@ export class ChatSocket extends Socket {
      */
     async migrate(token: string) {
         const oldId = this.id;
+        const oldName = this.name;
 
         try {
             const payload: any = await verify(token, JWT_SECRET!, "HS512");
@@ -163,9 +165,10 @@ export class ChatSocket extends Socket {
 
             if(this.room) {
                 // Send to all clients in the room
-                await broadcast(this.room, merge("USER", this.id, this.name!));
+                await broadcast(this.room, merge("MIGRATED", oldId, oldName!, this.id, this.name!));
             } else {
-                await this.send(merge("SELF", this.id, this.name!));
+                await this.send(merge("ID", this.id));
+                await this.send(merge("NAME", this.name!));
             }
         } catch (err) {
             throw new Error("Unable to verify token");
@@ -187,13 +190,13 @@ export class ChatSocket extends Socket {
         // Leave room if they're in one
         if(oldRoom) {
             // Notify others
-            broadcast(oldRoom, merge("LEAVE", this.id, this.name));
+            broadcast(oldRoom, merge("LEFT", this.id, this.name));
         }
 
         await this.send(merge("ROOM", room));
 
         // Notify others
-        broadcast(room, merge("JOIN", this.id, this.name!));
+        broadcast(room, merge("JOINED", this.id, this.name!));
     }
 
     /**
@@ -211,7 +214,7 @@ export class ChatSocket extends Socket {
         this.room = null;
 
         // Notify others
-        await broadcast(room, merge("LEAVE", this.id, this.name!));
+        await broadcast(room, merge("LEFT", this.id, this.name!));
     }
 
 }
