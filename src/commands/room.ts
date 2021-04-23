@@ -24,16 +24,16 @@ const roomCommands: CommandDefinitions = {
     },
     "leave": async (socket) => {
         try {
-            socket.leave();
+            await socket.leave();
         } catch(err) {
-            socket.send(`ERROR "${err.message}"`);
+            await socket.send(`ERROR "${err.message}"`);
         }
     },
     "send": async (socket, message: string) => {
         try {
             await socket.broadcastChat(message);
         } catch(err) {
-            socket.send(`ERROR "${err.message}"`);
+            await socket.send(`ERROR "${err.message}"`);
         }
     }
 }

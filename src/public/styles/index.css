@@ -1,17 +1,197 @@
-.header {
+body {
     margin: 0;
-    padding: 0.5rem;
+    font-family: monospace;
+    font-size: 15pt;
+    background: #111;
+    background-image: radial-gradient(#112, #111);
+    background-repeat: no-repeat;
+    color: #eee;
+    text-shadow: 0px 0px 10px currentColor;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
 }
 
-.header__title {
+html {
+    height: -webkit-fill-available;
+}
+
+/* General container for responsive design */
+.container {
+    margin: 0 auto;
+    max-width: 960px;
+    padding: 1rem;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Container for all messages */
+#messages {
+    flex: auto;
+    overflow: auto;
+}
+.messages-container {
+    margin-bottom: 0;
+    flex: auto;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+}
+/* TODO: safe area */
+/* An individual message */
+.message {
+    line-height: 1.8rem;
+    display: block;
+    margin: 0 0 1.4rem 0;
     margin: 0;
-    font-size: 1.4rem;
+    color: #eee;
+    width: max-content;
+    word-wrap: break-word;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Really important messages */
+.message--important {
+    color: #fff;
+    font-weight: bold;
+}
+.message--info {
+    color: #3ff;
+}
+.message--info::before {
+    content: "( ";
+}
+.message--info::after {
+    content: " )";
+}
+
+/* Error messages */
+.message--error {
+    color: #f33;
+}
+.message--error::before {
+    content: "[error] ";
+}
+
+/* Warning message */
+.message--warning {
+    color: #ff3;
+}
+.message--warning::before {
+    content: "[warning] ";
+}
+
+/* Success message */
+.message--success {
+    color: #3f3;
+}
+/* .message--success::before {
+    content: "[success] ";
+} */
+
+/* Center any message */
+.message--centered {
     text-align: center;
+}
+
+/* Message sender */
+.message__sender {
+    color: #888;
+}
+.message__sender::after {
+    content: ": ";
+}
+
+/* header */
+.header {
+    position: sticky;
+    top: 0;
+    margin: 0;
+    color: #ff3;
+    text-shadow: 0px 0px 10px currentColor;
+    background: linear-gradient(#111 50%, #11111100)
+}
+.header .container {
+    display: flex;
+    align-items: center;
+}
+.header__block {
+    margin: 0;
+}
+.header__block--fill {
+    flex: auto;
+}
+
+/* the room */
+.header__title {
+    color: #3ff;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.header__title:not(:empty):before {
+    color: #888;
+    content: "# ";
+}
+.header__title:empty::after {
+    display: block;
+    text-align: center;
+    content: "carterjs chat";
+}
+/* the number of members */
+.header__subtitle {
+    font: inherit;
+    color: #eee;
+}
+.header__subtitle:empty {
+    display: none;
+}
+
+/* Cool floating button */
+.button {
+    cursor: pointer;
+    font: inherit;
+    text-shadow: inherit;
+    background: transparent;
+    padding: 0.5rem 1rem;
+    color: #3f3;
+    font-weight: bold;
+    transition: all 200ms ease;
+    box-shadow: 0 0 10px currentColor, inset 0 0 10px currentColor;
+    border: 3px solid currentColor;
+    border-radius: 0.5rem;
+}
+
+.textbox {
+    position: sticky;
+    bottom: 0;
+    display: block;
+    background: linear-gradient(0deg, #111 50%, #11111100);
+    
+}
+
+.textbox .container {
+    display: flex;
+    align-items: flex-end;
+}
+
+.textbox__input {
+    outline: none;
+    flex: auto;
+    padding: 0.5rem;
+    word-wrap: break-word;
+    max-width: auto;
+    min-width: 0;
+}
+.textbox__input:empty::before {
+    color: #888;
+    content: attr(placeholder)
 }
 
 .main {
     flex: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
 }

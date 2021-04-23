@@ -36,11 +36,11 @@ export function merge(...messages: string[]): string {
  * @param room the room to broadcast to
  * @param message the message to send
  */
-function broadcast(room: string, message: string) {
+async function broadcast(room: string, message: string) {
     // Notify others
     for(let [,socket] of sockets) {
         if(socket.room === room) {
-            socket.send(message);
+            await socket.send(message);
         }
     }
 }
@@ -64,7 +64,10 @@ export class ChatSocket extends Socket {
 
         // Stop tracking socket on close
         this.on("close", () => {
-            sockets.delete(this.id);
+            console.log("Closing time");
+            console.log(sockets);
+            console.log(sockets.has(this.id));
+            console.log("del", sockets.delete(this.id));
             if(this.room) {
                 broadcast(this.room, merge("LEAVE", this.id, this.name!));
             }
@@ -128,12 +131,14 @@ export class ChatSocket extends Socket {
         const token = await this.generateToken();
 
         // Notify the client
-        await this.send(merge("NAME", name));
         await this.send(merge("TOKEN", token));
+        await this.send(merge("SELF", this.id, this.name));
 
         if(this.room) {
             // Send to all clients in the room
             broadcast(this.room, merge("NAME", this.id, this.name));
+        } else {
+            await this.send(merge("NAME", this.id, this.name));
         }
 
         return true;
@@ -145,18 +150,22 @@ export class ChatSocket extends Socket {
      * @returns true if successful
      */
     async migrate(token: string) {
-        const oldName = this.name;
+        const oldId = this.id;
 
         try {
             const payload: any = await verify(token, JWT_SECRET!, "HS512");
             this.id = payload.id;
             this.name = payload.name;
 
-            await this.send(merge("NAME", this.name!));
+            // TODO: this seems sketch
+            sockets.set(this.id, this);
+            sockets.delete(oldId);
 
             if(this.room) {
                 // Send to all clients in the room
-                broadcast(this.room, merge("NAME", this.id, this.name!));
+                await broadcast(this.room, merge("USER", this.id, this.name!));
+            } else {
+                await this.send(merge("SELF", this.id, this.name!));
             }
         } catch (err) {
             throw new Error("Unable to verify token");
@@ -202,7 +211,7 @@ export class ChatSocket extends Socket {
         this.room = null;
 
         // Notify others
-        broadcast(room, merge("LEAVE", this.id, this.name!));
+        await broadcast(room, merge("LEAVE", this.id, this.name!));
     }
 
 }

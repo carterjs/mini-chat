@@ -4,11 +4,13 @@ import { CommandDefinitions, CommandResolver } from "./types.ts";
 import authCommands from "./auth.ts";
 import roomCommands from "./room.ts";
 import shareCommands from "./share.ts";
+import generalCommands from "./general.ts";
 
 const commands: CommandDefinitions = {
     ...authCommands,
     ...roomCommands,
     ...shareCommands,
+    ...generalCommands
 }
 
 // Make all keys uppercase

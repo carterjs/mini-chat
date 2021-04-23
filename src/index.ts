@@ -47,10 +47,6 @@ for await (const req: ServerRequest of server) {
       // index.html
       const content = await getFileContent(req, "/public/index.html");
       req.respond(content);
-    } else if(/^\/\w+$/.test(req.url)) {
-      // room.html
-      const content = await getFileContent(req, "/public/room.html");
-      req.respond(content);
     } else {
       // Get absolute path for static file
       try {

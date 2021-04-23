@@ -1,0 +1,1 @@
+deno run --allow-net --allow-read --allow-env --watch --unstable src/index.ts

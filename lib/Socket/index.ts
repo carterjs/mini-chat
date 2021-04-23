@@ -114,12 +114,7 @@ export class Socket {
    * @param components the components of the message
    */
   async send(message: WebSocketMessage) {
-
-    // Make sure the socket is in a valid state
-    if(this.status !== Status.Open) {
-      throw new Error(`The socket is not open`);
-    }
-
+    // TODO: something with status
     // Send to the client
     await this.socket.send(message);
   }
