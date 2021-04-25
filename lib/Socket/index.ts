@@ -1,8 +1,8 @@
 import {
   isWebSocketPingEvent,
+  isWebSocketPongEvent,
   isWebSocketCloseEvent,
-  WebSocket,
-  WebSocketMessage
+  WebSocket
 } from "https://deno.land/std@0.92.0/ws/mod.ts";
 
 import { v4 } from "https://deno.land/std@0.92.0/uuid/mod.ts";
@@ -11,6 +11,7 @@ export enum Event {
   Text = "TEXT",
   Binary = "BINARY",
   Ping = "PING",
+  Pong = "PONG",
   Open = "OPEN",
   Close = "CLOSE",
 }
@@ -62,9 +63,12 @@ export class Socket {
         if (typeof ev === "string") {
           this.handleEvent(Event.Text, ev);
         } else if (ev instanceof Uint8Array) {
+          console.log(isWebSocketPingEvent(ev));
           this.handleEvent(Event.Binary, ev);
         } else if (isWebSocketPingEvent(ev)) {
           this.handleEvent(Event.Ping, ev);
+        } else if(isWebSocketPongEvent(ev)) {
+          this.handleEvent(Event.Pong, ev);
         } else if (isWebSocketCloseEvent(ev)) {
           this.status = Status.Closed;
           this.handleEvent(Event.Close, ev);
@@ -74,7 +78,11 @@ export class Socket {
       // Handle errors by closing
       if (!this.socket.isClosed) {
         this.status = Status.Closed;
-        await this.socket.close(1000).catch(console.error);
+        try {
+          await this.socket.close(1000).catch(console.error);
+        } catch(err) {
+          console.log("Failed to close socket", err);
+        }
         this.handleEvent(Event.Close, { code: 1000, reason: "Failed to receive frame" });
       }
       //? Do I need to set status or send here?
@@ -115,9 +123,32 @@ export class Socket {
    * Send a generic message to a client
    * @param components the components of the message
    */
-  async send(message: WebSocketMessage) {
+  async send(message: string) {
     // TODO: something with status
+    if(this.socket.isClosed) {
+      this.handleEvent(Event.Close, null);
+      return;
+    }
     // Send to the client
     await this.socket.send(message);
+  }
+
+  async ping() {
+    return this.socket.ping();
+  }
+
+  async close() {
+    if(!this.socket.isClosed) {
+      await this.socket.close();
+    }
+
+    this.handleEvent(Event.Close, null);
+
+
+    return;
+  }
+
+  get isClosed() {
+    return this.socket.isClosed;
   }
 }

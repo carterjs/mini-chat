@@ -1,7 +1,7 @@
 FROM hayd/alpine-deno:1.9.0
 
-# The port that your application listens to.
-EXPOSE 8080
+# # The port that your application listens to.
+# EXPOSE 8080
 
 # Set base working directory
 WORKDIR /app

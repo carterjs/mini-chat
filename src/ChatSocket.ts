@@ -9,6 +9,25 @@ import commands from "./commands/index.ts";
 /** The list of all connected sockets */
 let sockets: Map<string, ChatSocket> = new Map();
 
+setInterval(async () => {
+    for(let [id, socket] of sockets) {
+        // Do we already know whether or not it's closed?
+        if(socket.isClosed) {
+            console.log("Socket already closed");
+            await socket.close();
+            continue;
+        }
+
+        // Otherwise, send a ping to check
+        try {
+            await socket.ping();
+        } catch(err) {
+            console.log("Closing due to failed ping");
+            await socket.close();
+        }
+    }
+}, 5000);
+
 // Make sure there's a JWT_SECRET
 const JWT_SECRET = Deno.env.get("JWT_SECRET");
 if(!JWT_SECRET) {
@@ -71,7 +90,7 @@ export class ChatSocket extends Socket {
         this.on("close", async () => {
             sockets.delete(this.id);
             if(this.room) {
-                broadcast(this.room, merge("LEAVE", this.id, this.name!));
+                broadcast(this.room, merge("LEFT", this.id, this.name!));
             }
         });
 

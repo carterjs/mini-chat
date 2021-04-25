@@ -66,14 +66,26 @@ function parseList(message) {
   return components;
 }
 
+// Store message block
+let block;
+
 function renderMessage(style, message) {
+  // Definitely not a chat - reset block
+  block = null;
+
+  // Create container
   const messageElement = document.createElement("p");
   messageElement.className = `message message--${style}`;
+
+  // Add content
   messageElement.innerText = message;
+
+  // Add to page
   messages.appendChild(messageElement);
+
+  // Scroll into view
   messageElement.scrollIntoView();
 }
-
 
 function handleMessage(rawMessage) {
   const components = parseList(rawMessage);
@@ -96,25 +108,26 @@ function handleMessage(rawMessage) {
 
       // Remember id
       id = components[1];
-      return;
+      break;
     case "NAME":
       name = components[1];
       break;
     case "TOKEN":
       // Save token in local storage
       localStorage.setItem("token", components[1]);
-      return;
+      break;
 
     /* Room */
     case "ROOM": {
       if(components[1]) {
         room = components[1];
+        location.hash = `#${room}`;
       } else {
         // Left the room
         room = null;
         renderMessage("event", "You left");
       }
-      return;
+      break;
     }
     case "JOINED":
       // Notify user
@@ -123,32 +136,48 @@ function handleMessage(rawMessage) {
     case "LEFT":
       // Notify user
       renderMessage("event", `${components[2]} left`);
-      return;
+      break;
     case "SETNAME":
       // Notify user
-      renderMessage("info", `${components[2]} is now ${components[3]}`);
-      return;
+      renderMessage("event", `${components[2]} changed their name to ${components[3]}`);
+      break;
     case "MIGRATED":
       // Notify user
-      renderMessage("info", `${components[2]} is now ${components[4]}`);
-      return;
+      renderMessage("event", `${components[2]} changed their name to ${components[4]}`);
+      break;
     case "CHAT": {
-      // Create chat message container
-      const message = document.createElement("p");
-      message.className = "message message--chat";
+      if(!block || block.sender !== components[1] || Date.now() - block.time > 5000) {
+        // Create chat message container
+        const newBlock = document.createElement("div");
+        newBlock.className = "message message--chat";
 
-      // Add the sender
-      const sender = document.createElement("strong");
-      sender.className = "message__sender";
-      sender.innerText = components[2];
+        // Create bubble container
+        const bubbles = document.createElement("div");
+        bubbles.className = `message__bubbles${components[1] === id ? " message__bubbles--self" : ""}`;
 
-      // Append sender and message content
-      message.appendChild(sender);
-      message.appendChild(document.createTextNode(components[3]));
+        // Add the sender
+        const sender = document.createElement("strong");
+        sender.className = `message__sender${components[1] === id ? " message__sender--self" : ""}`;
+        sender.innerText = components[2];
+
+        newBlock.appendChild(sender);
+
+        newBlock.appendChild(bubbles);
+
+        // Save block
+        block = { bubbles, sender: components[1], time: Date.now() };
+
+        messages.appendChild(newBlock);
+      }
+
+      const bubble = document.createElement("p");
+      bubble.className = "message__bubble";
+      bubble.innerText = components[3];
 
       // Add to page
-      messages.appendChild(message);
-      message.scrollIntoView();
+      block.bubbles.appendChild(bubble);
+      block.time = Date.now();
+      bubble.scrollIntoView();
       break;
     }
 
@@ -156,6 +185,12 @@ function handleMessage(rawMessage) {
     default:
       console.error(`Unknown message type: ${components[0]}`);
     
+  }
+}
+
+window.onunload = function() {
+  if(ws) {
+    ws.close();
   }
 }
 
@@ -175,7 +210,8 @@ function connect() {
   ws.onopen = function () {
     // Reset attempts
     connectionAttempts = 0;
-    console.info("Connected!");
+
+    renderMessage("info", "Connected to server!");
 
     // Authenticate if possible
     const token = localStorage.getItem("token");
@@ -192,6 +228,13 @@ function connect() {
   // When disconnected
   ws.onclose = function (e) {
     ws = null;
+
+    id = null;
+
+    if(connectionAttempts === 0) {
+      renderMessage("warning", "Disconnected from server");
+    }
+    
     // Do nothing for form submissions without connection
     sendButton.onclick = function () {
       console.error("Currently disconnected!");
@@ -201,15 +244,15 @@ function connect() {
     if (e.code === 1006) {
       console.log(`Connection closed.`);
       if (connectionAttempts >= 5) {
-        console.log("Couldn't connect, giving up now.");
+        renderMessage("info", "Couldn't reconnect.");
         return;
       }
 
       // Try again in 1 second
       setTimeout(function () {
-        console.log("Trying again...");
+        renderMessage("info", "Trying to reconnect...")
         connect();
-      }, 1000);
+      }, 3000);
     }
   };
 
