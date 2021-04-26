@@ -15,6 +15,11 @@ const roomCommands: CommandDefinitions = {
             return;
         }
 
+        if(!/^[a-z0-9-_]+$/i.test(room)) {
+            await socket.send(`ERROR "That's not a valid room id"`);
+            return;
+        }
+
         try {
             await socket.join(room);
         } catch(err) {

@@ -1,7 +1,7 @@
 import { CommandDefinitions } from "./types.ts";
 
 const authCommands: CommandDefinitions = {
-    "qr": async (socket, size=300) => {
+    "qr": async (socket, size=150) => {
 
         if(!socket.room) {
             await socket.send(`ERROR "You're not in a room"`);
