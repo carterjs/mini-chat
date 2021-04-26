@@ -159,6 +159,8 @@ export class ChatSocket extends Socket {
         if(this.room) {
             // Send to all clients in the room
             broadcast(this.room, merge("SETNAME", this.id, oldName!, this.name));
+        } else if(oldName) {
+            await this.send(merge("SETNAME", this.id, oldName!, this.name));
         }
 
         return true;
