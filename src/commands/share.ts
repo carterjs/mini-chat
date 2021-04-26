@@ -8,7 +8,7 @@ const authCommands: CommandDefinitions = {
             return;
         }
 
-        await socket.send(`QR https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(`https://chat.carterjs.com/#${socket.room}`)}`);
+        await socket.send(`QR https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(`https://chat.carterjs.com/${socket.room}`)}`);
         
     }
 }

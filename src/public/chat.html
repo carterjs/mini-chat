@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chat</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/chat.css">
+</head>
+<body>
+    <article class="welcome-screen hidden" id="welcomeScreen">
+        <div class="welcome-screen__wrapper">
+            <h2 class="welcome-screen__heading">Welcome!</h2>
+            <form class="name-form" id="nameForm">
+                <label for="name" class="name-form__label">Please choose a display name:</label>
+                <div class="name-form__box">
+                    <input type="text" id="name" class="name-form__input" placeholder="Your name">
+                    <button type="submit" class="button button--filled button--right">continue</button>
+                </div>
+            </form>
+        </div>
+    </article>
+    <article class="chat-screen hidden" id="chatScreen">
+        <div class="messages-container container">
+            <div id="messages"></div>
+        </div>
+        <div class="textbox">
+            <div class="container">
+                <span class="textbox__input" id="input" placeholder="message or command" contenteditable autofocus></span>
+                <button class="button textbox__button" id="send">send</button>
+            </div>
+        </div>
+    </article>
+    <script src="/scripts/chat.js"></script>
+</body>
+</html>
