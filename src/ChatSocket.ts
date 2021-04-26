@@ -13,7 +13,6 @@ setInterval(async () => {
     for(let [id, socket] of sockets) {
         // Do we already know whether or not it's closed?
         if(socket.isClosed) {
-            console.log("Socket already closed");
             await socket.close();
             continue;
         }
@@ -22,7 +21,6 @@ setInterval(async () => {
         try {
             await socket.ping();
         } catch(err) {
-            console.log("Closing due to failed ping");
             await socket.close();
         }
     }

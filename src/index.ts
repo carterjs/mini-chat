@@ -12,8 +12,6 @@ import {
 // Load in environment variables
 import "https://deno.land/x/dotenv/load.ts";
 
-console.log(Deno.env.get("PORT"));
-
 import { acceptSocket } from "../lib/Socket/acceptSocket.ts";
 import { ChatSocket } from "./ChatSocket.ts";
 
