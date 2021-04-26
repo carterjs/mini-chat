@@ -45,13 +45,9 @@ for await (const req: ServerRequest of server) {
     }
   } else {
     // Serve client application
-    if(req.url === "/") {
-      // index.html
-      const content = await getFileContent(req, "/public/index.html");
-      req.respond(content);
-    } else if (/^\/\w+$/.test(req.url)) {
+    if (/^\/[a-z0-9-\._]*$/.test(req.url)) {
       // chat.html
-      const content = await getFileContent(req, "/public/chat.html");
+      const content = await getFileContent(req, "/public/index.html");
       req.respond(content);
     } else {
       // Get absolute path for static file
