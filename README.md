@@ -4,26 +4,27 @@ Created by Carter J. Schmalzle
 
 ### Requirements:
 
-- [ ] Must have user accounts and different user roles
-  - What I have should work. Need to finish the roles and make sure they persist and have some different abilities.
+- [x] Accounts
+- [ ] Different user roles
+  - Plan: just owner
 - [ ] Must use a database
-  - Plan: connect Redis for Pub/Sub and use to store the roles for each chat. Expire role information after a given time, but refresh the expiry regularly if anyone is in the chat.
-- [ ] Must have interactive UI
+  - Plan: connect Redis for Pub/Sub and use to store some basic chat info like a greeting and the owner. Only the owner will be able to set the greeting.
+- [x] Must have interactive UI
   - Plan: plain old HTML to make the simplest chat interface possible with slash commands. History and completion would be nice, but are not necessary.
 - [x] Must use a library or framework not discussed/used in class
-- [ ] Must use an outside REST API in some way
+- [x] Must use an outside REST API in some way
   - Need to confirm, but I'd like to just do the QR code thing and nothing else. Could additionally add more slash commands or the ability to add custom slash commands.
-- [ ] Must deploy your application in some publicly accessible way (Heroku, Digital
+- [x] Must deploy your application in some publicly accessible way (Heroku, Digital
   Ocean, AWS, etc)
-  - Plan: deploy to Google Cloud Run. Not sure how that will work with Redis subscriptions since it scales to 0. It also only recently got support for websockets, so hopefully that works. Sticky sessions are probably a must.
+  - It's deployed to Google's Cloud Run, which is great since it just runs any Docker container, but not great because connections time out which disconnects the websocket temporarily sometimes.
 
 ### Plan
 
-The plan is to build a chat app with a focus on in-the-moment communication. Authentication will be limited and it will be ideal for quickly jumping into a chat. Every chat will be sharable by a link so that anyone can simply click a link or scan a QR code and immediately be in a chat.
+The plan is to build a chat app with a focus on in-the-moment communication. Authentication will be minimal and it will be ideal for quickly jumping into a chat. Every chat will be sharable by a link so that anyone can simply click a link or scan a QR code and immediately be in a chat.
 
-There will be very basic user roles. The first person to join a chat at a particular URL will be made the owner. They can then set other people up to be moderators, and the rest of the people in the chat will be guests.
+There will be very basic user roles. The first person to join a chat at a particular URL will be made the owner. They will have a few extra abilities, but not many.
 
-Each person will have a name, but it may be a randomly generated one. Names do not need to be unique, but I may add some sort of clarification mechanism to prevent stealing identities. Each user will have a unique ID that will be sent with all interactions so that there will be no confusion there.
+Each person will have a name, but it may be a randomly generated one (kinda phasing this out). Names do not need to be unique, but I may add some sort of clarification mechanism to prevent stealing identities. Each user will have a unique ID that will be sent with all interactions so that there will be no confusion there.
 
 Sessions will be managed with JSON Web Tokens (JWTs). Whenever the user changes their name or requests a token refresh, they will receive a new token with the same id and their current name. Next time they join, they can use that token to authenticate and maintain the same ID and name.
 
