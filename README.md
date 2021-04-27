@@ -9,7 +9,7 @@ Created by Carter J. Schmalzle
   - Plan: just owner
 - [ ] Must use a database
   - Plan: connect Redis for Pub/Sub and use to store some basic chat info like a
-    greeting and the owner. Only the owner will be able to set the greeting.
+    topic and the owner. Only the owner will be able to set the topic.
 - [x] Must have interactive UI
   - Plan: plain old HTML to make the simplest chat interface possible with slash
     commands. History and completion would be nice, but are not necessary.

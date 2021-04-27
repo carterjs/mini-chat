@@ -15,12 +15,15 @@ import {
 import { generateName } from "./generateName.ts";
 import { merge } from "./merge.ts";
 import { ChatServer } from "./ChatServer.ts";
+import { getRedisClient } from "./getRedisClient.ts";
 
 // Make sure there's a JWT_SECRET
 const JWT_SECRET = Deno.env.get("JWT_SECRET");
 if (!JWT_SECRET) {
   throw new Error("You must provide a JWT_SECRET environment variable");
 }
+
+const redisClient = await getRedisClient();
 
 // Events emitted by socket
 export enum Event {
@@ -151,7 +154,7 @@ export class ChatSocket {
     if(!this.room) {
       throw new Error("You're not in a room");
     }
-    
+
     await this.server.broadcast(this.room, message);
   }
 
@@ -269,10 +272,51 @@ export class ChatSocket {
 
     this.room = room;
 
-    await this.send(merge("ROOM", room));
+    // Get room data
+    let [ owner, topic = "" ] = await redisClient.hmget(`room:${room}`, "owner", "topic");
+
+    await this.send(merge("ROOM", room, topic));
+
+    if(owner) {
+      // Room exists
+      if(owner === this.id) {
+        await this.send(`INFO "You're the owner"`);
+      }
+    } else {
+      // Claim the room with a transaction
+      const tx = redisClient.tx();
+
+      // Set owner
+      tx.hset(`room:${room}`, ["owner", this.id]);
+
+      // Expire in 10 seconds
+      tx.expire(`room:${room}`, 10);
+
+      // Run transaction
+      await tx.flush();
+
+      // Notify user
+      await this.send(`INFO "You've just claimed this room!"`);
+    }
 
     // Notify others
     await this.broadcast(merge("JOINED", this.id, this.name!));
+  }
+
+  async setRoomTopic(topic: string) {
+    if(!this.room) {
+      throw new Error("You're not in a room");
+    }
+
+    let [ owner ] = await redisClient.hmget(`room:${this.room}`, "owner");
+
+    if(owner !== this.id) {
+      throw new Error("You don't have permission to change the topic");
+    }
+
+    await redisClient.hset(`room:${this.room}`, "topic", topic);
+
+    await this.send(`SUCCESS "Room topic changed."`);
   }
 
   /**

@@ -121,6 +121,17 @@ color: #ccc;
     background: linear-gradient(90deg, #222, #111);
 }
 
+.message--room {
+    font-size: 2.5rem;
+    margin: 0;
+}
+
+.message--room::before {
+    content: "/";
+    margin-right: 0.5rem;
+    color: #3b3bbb;
+}
+
 .message--chat {
     background: transparent;
 }

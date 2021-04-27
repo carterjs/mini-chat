@@ -180,6 +180,7 @@ function handleMessage(rawMessage) {
   // Add classes and content
   switch (components[0]) {
     /* Server responses */
+    case "INFO":
     case "SUCCESS":
     case "WARNING":
     case "ERROR":
@@ -224,6 +225,24 @@ function handleMessage(rawMessage) {
         // Joiined a room
         messages.innerHTML = "";
         history.pushState({}, `/${components[1]}`, `/${components[1]}`);
+
+        // Add room
+        const room = document.createElement("h1");
+        room.className = "message--room";
+        room.innerText = components[1];
+        messages.appendChild(room);
+        room.scrollIntoView();
+
+        // Add greeting
+        const greeting = document.createElement("p");
+        greeting.className = "message--greeting";
+        greeting.innerText = components[2] || `Welcome to /${components[1]}!`;
+
+        // Append them
+        messages.appendChild(room);
+        messages.appendChild(greeting);
+        greeting.scrollIntoView();
+
         setRoom();
       } else {
         // Left the room

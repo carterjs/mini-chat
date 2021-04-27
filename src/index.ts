@@ -12,20 +12,11 @@ import {
 // Load in environment variables
 import "https://deno.land/x/dotenv/load.ts";
 
-import { ScalableChatServer } from "./ScalableChatServer.ts";
+import { ChatServer } from "./ChatServer.ts";
 
 import commands from "./commands/index.ts";
 
-const chatServer = new ScalableChatServer(commands);
-
-addEventListener("unload", (e) => {
-  console.log(e);
-  console.log("She's leaving");
-});
-addEventListener("load", (e) => {
-  console.log(e);
-  console.log("She's leaving");
-});
+const chatServer = new ChatServer(commands);
 
 // HTTP server
 const port = Number(Deno.env.get("PORT")) || 8080;

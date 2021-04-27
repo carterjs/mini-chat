@@ -7,6 +7,13 @@ import {
 
 import { parseCommand } from "./parseCommand.ts";
 import { ChatSocket } from "./ChatSocket.ts";
+import { getRedisClient } from "./getRedisClient.ts";
+
+const redisClient = await getRedisClient();
+const redisSubClient = await getRedisClient();
+
+// Subscribe for new messages
+const messagesSub = await redisSubClient.psubscribe("room:*");
 
 export class ChatServer {
   /** Map of all sockets on this node */
@@ -20,13 +27,29 @@ export class ChatServer {
       [key: string]: (socket: ChatSocket, ...args: string[]) => void;
     },
   ) {
+    // Save commands
     this.commands = commands;
+
     // Start taking attendance
     this.takeAttendance();
+
+    // Listen for messages
+    (async () => {
+      for await (const { channel, message } of messagesSub.receive()) {
+        const [,room] = channel.split(":");
+        // Broadcast to local clients
+        for (const [, socket] of this.sockets) {
+          if (socket.room === room) {
+            await socket.send(message);
+          }
+        }
+      }
+    })();
   }
 
   /** Ping sockets regularly and update their attendance in the database */
   async takeAttendance() {
+    let rooms = new Set();
     for (const [, socket] of this.sockets) {
       // Do we already know whether or not it's closed?
       if (socket.isClosed) {
@@ -37,10 +60,20 @@ export class ChatServer {
       // Otherwise, send a ping to check
       try {
         await socket.ping();
+        if(socket.room) {
+          rooms.add(socket.room);
+        }
       } catch (_err) {
         await socket.close();
       }
     }
+
+    // Keep those rooms alive
+    const pipeline = redisClient.pipeline();
+    for(let room of rooms) {
+      pipeline.expire(`room:${room}`, 10);
+    }
+    await pipeline.flush();
 
     // Run again in a bit
     setTimeout(this.takeAttendance.bind(this), 5000);
@@ -92,16 +125,13 @@ export class ChatServer {
   }
 
   /**
-   * Send a message to all local clients in the same room
+   * Send a message to all clients in the same room
    * @param room the room to send to
    * @param message the message to send
    */
   async broadcast(room: string, message: string) {
-    for (const [, socket] of this.sockets) {
-      if (socket.room === room) { // TODO: exclude this socket
-        await socket.send(message);
-      }
-    }
+    // Publish to pubsub
+    redisClient.publish(`room:${room}`, message);
   }
 
   /**

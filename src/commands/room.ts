@@ -41,6 +41,13 @@ const roomCommands = {
       await socket.send(`ERROR "${err.message}"`);
     }
   },
+  "settopic": async (socket: ChatSocket, topic: string) => {
+    try {
+      await socket.setRoomTopic(topic);
+    } catch(err) {
+      await socket.send(`ERROR "${err.message}"`);
+    }
+  },
 };
 
 export default roomCommands;
