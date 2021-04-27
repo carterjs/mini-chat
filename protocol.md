@@ -11,7 +11,8 @@
 - `TOKEN` - gets a new token
 - `SETNAME` - gives the user a random name
 - `SETNAME <name>` - sets the user's name
-- `MIGRATE <token>` - migrate the current user to use the id and name contained in the token
+- `MIGRATE <token>` - migrate the current user to use the id and name contained
+  in the token
 
 ### Rooms
 
@@ -24,7 +25,8 @@
 
 ### Messages
 
-Messages come in response to commands executed by the client. They can be relayed directly to the client.
+Messages come in response to commands executed by the client. They can be
+relayed directly to the client.
 
 - `SUCCESS <message>` - normal response
 - `WARNING <message>` - a warning
@@ -38,7 +40,8 @@ Messages come in response to commands executed by the client. They can be relaye
 
 ### Rooms
 
-- `ROOM <room>` - The room the user is now in. Undefined or empty value for room indicates the user is not in a room
+- `ROOM <room>` - The room the user is now in. Undefined or empty value for room
+  indicates the user is not in a room
 - `CHAT <id> <name> <message>` - new chat in the room
 - `ANNOUNCEMENT <message>` - announcement from server
 - `JOINED <id> <name>` - someone joined the room

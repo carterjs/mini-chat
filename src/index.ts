@@ -12,8 +12,20 @@ import {
 // Load in environment variables
 import "https://deno.land/x/dotenv/load.ts";
 
-import { acceptSocket } from "../lib/Socket/acceptSocket.ts";
-import { ChatSocket } from "./ChatSocket.ts";
+import { ChatServer } from "./ChatServer.ts";
+
+import commands from "./commands/index.ts";
+
+const chatServer = new ChatServer(commands);
+
+addEventListener("unload", (e) => {
+  console.log(e);
+  console.log("She's leaving");
+});
+addEventListener("load", (e) => {
+  console.log(e);
+  console.log("She's leaving");
+});
 
 // HTTP server
 const port = Number(Deno.env.get("PORT")) || 8080;
@@ -33,12 +45,12 @@ function getFileContent(req: ServerRequest, partialPath: string) {
 
 // Handle all http reqeusts
 for await (const req: ServerRequest of server) {
-  if(req.url === "/ws") {
+  if (req.url === "/ws") {
     try {
       // Create the chat socket
-      new ChatSocket(await acceptSocket(req));
-    } catch(err) {
-      console.error("Failed to accept socket");
+      chatServer.acceptSocket(req);
+    } catch (err) {
+      console.error("Failed to accept socket:", err.message);
       await req.respond({ status: 400 });
     }
   } else {
@@ -53,7 +65,7 @@ for await (const req: ServerRequest of server) {
         // Try to send static file content
         const content = await getFileContent(req, `/public/${req.url}`);
         req.respond(content);
-      } catch (err) {
+      } catch (_err) {
         // File not found - show 404
         const content = await getFileContent(req, "/public/404.html");
         req.respond({ ...content, status: 404 });

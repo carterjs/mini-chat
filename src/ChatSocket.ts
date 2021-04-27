@@ -1,239 +1,293 @@
-import { Socket } from "../lib/Socket/index.ts";
-import { create, verify } from "./deps.ts";
-import { generateName } from "../lib/generateName.ts";
-import { parseCommand } from "../lib/parseCommand.ts";
-import { WebSocket } from "https://deno.land/std@0.92.0/ws/mod.ts";
+import {
+  // JWTs
+  create,
+  // WebSockets
+  isWebSocketCloseEvent,
+  isWebSocketPingEvent,
+  isWebSocketPongEvent,
+  // UUID
+  v4,
+  verify,
+  WebSocket,
+  WebSocketEvent,
+} from "./deps.ts";
 
-import commands from "./commands/index.ts";
-
-/** The list of all connected sockets */
-let sockets: Map<string, ChatSocket> = new Map();
-
-setInterval(async () => {
-    for(let [id, socket] of sockets) {
-        // Do we already know whether or not it's closed?
-        if(socket.isClosed) {
-            await socket.close();
-            continue;
-        }
-
-        // Otherwise, send a ping to check
-        try {
-            await socket.ping();
-        } catch(err) {
-            await socket.close();
-        }
-    }
-}, 5000);
+import { generateName } from "./generateName.ts";
+import { merge } from "./merge.ts";
+import { ChatServer } from "./ChatServer.ts";
 
 // Make sure there's a JWT_SECRET
 const JWT_SECRET = Deno.env.get("JWT_SECRET");
-if(!JWT_SECRET) {
-    throw new Error("You must provide a JWT_SECRET environment variable");
+if (!JWT_SECRET) {
+  throw new Error("You must provide a JWT_SECRET environment variable");
 }
 
-/**
- * Join a list of messages
- * @param messages a number of messages
- * @returns all messages in a space-delimited list (quotes to separate multi-word messages)
- */
-export function merge(...messages: string[]): string {
-    return messages.map((message) => {
-        // Quote components with spaces
-        if(`${message}`.includes(" ")) {
-            return `"${message}"`;
-        }
-
-        return message;
-    }).join(" ");
+// Events emitted by socket
+export enum Event {
+  Text = "TEXT",
+  Binary = "BINARY",
+  Ping = "PING",
+  Pong = "PONG",
+  Open = "OPEN",
+  Close = "CLOSE",
 }
 
-/**
- * Send a message to all sockets in a room
- * @param room the room to broadcast to
- * @param message the message to send
- */
-async function broadcast(room: string, message: string) {
-    // Notify others
-    for(let [,socket] of sockets) {
-        if(socket.room === room) {
-            await socket.send(message);
+export class ChatSocket {
+  id: string;
+  name?: string;
+  private socket: WebSocket;
+  server: ChatServer;
+  nextListenerId = 0;
+  private listeners: Map<
+    number,
+    { event: string; listener: (payload?: WebSocketEvent) => void }
+  > = new Map();
+  room: string | null = null;
+
+  constructor(socket: WebSocket, server: ChatServer) {
+    this.id = v4.generate();
+
+    this.socket = socket;
+
+    this.server = server;
+
+    this.listenOnSocket();
+  }
+
+  /** Pass through isClosed from std socket */
+  get isClosed() {
+    return this.socket.isClosed;
+  }
+
+  /**
+   * Pass events on to listeners
+   * @param event event name
+   * @param payload any value to pass in the listener
+   */
+  private handleEvent(event: Event, payload?: WebSocketEvent) {
+    for (const [, { event: listenerEvent, listener }] of this.listeners) {
+      if (listenerEvent === event) {
+        listener(payload);
+      }
+    }
+  }
+
+  /** Listen for events on the socket */
+  private async listenOnSocket() {
+    this.handleEvent(Event.Open);
+    // Handle socket events
+    try {
+      // Handle socket events
+      for await (const ev of this.socket) {
+        // Pass valid events on to event handler
+        if (typeof ev === "string") {
+          this.handleEvent(Event.Text, ev);
+        } else if (ev instanceof Uint8Array) {
+          console.log(isWebSocketPingEvent(ev));
+          this.handleEvent(Event.Binary, ev);
+        } else if (isWebSocketPingEvent(ev)) {
+          this.handleEvent(Event.Ping, ev);
+        } else if (isWebSocketPongEvent(ev)) {
+          this.handleEvent(Event.Pong, ev);
+        } else if (isWebSocketCloseEvent(ev)) {
+          this.handleEvent(Event.Close, ev);
         }
-    }
-}
-
-export class ChatSocket extends Socket {
-    /**
-     * The chat socket's name
-     */
-    name?: string;
-
-    /**
-     * The room the socket is in
-     */
-    room: string | null = null;
-
-    constructor(socket: WebSocket) {
-        super(socket);
-
-        // Add to pool
-        sockets.set(this.id, this);
-
-        // Send ID on open
-        this.on("open", async () => {
-            await socket.send(merge("ID", this.id));
-        });
-
-        // Stop tracking socket on close
-        this.on("close", async () => {
-            sockets.delete(this.id);
-            if(this.room) {
-                broadcast(this.room, merge("LEFT", this.id, this.name!));
-            }
-        });
-
-        // Handle text messages as commands
-        this.on("text", async (message: string) => {
-            const args = parseCommand(message);
-
-            const resolver = commands.get(args[0].toUpperCase());
-
-            if(resolver) {
-                resolver(this, ...args.slice(1));
-            } else {
-                await this.send(merge("ERROR", `Invalid command "${args[0]}"`));
-            }
-        });
-    }
-
-    /**
-     * Send a message to all clients in the same room
-     * @param message the message to send
-     */
-    async broadcastChat(message: string) {
-        if(!this.room) {
-            throw new Error("You're not in a room");
+      }
+    } catch (_err) {
+      // Handle errors by closing
+      if (!this.socket.isClosed) {
+        try {
+          await this.socket.close(1000).catch(console.error);
+        } catch (err) {
+          console.log("Failed to close socket:", err.message);
         }
-
-        broadcast(this.room, merge("CHAT", this.id, this.name!, message));
+        this.handleEvent(Event.Close, {
+          code: 1000,
+          reason: "Failed to receive frame",
+        });
+      }
     }
+  }
 
-    /**
-     * Get a new token for the client
-     * @returns a new JWT
+  /**
+     * Listen on a socket event
+     * @param event the event to listen on
+     * @param listener the listener to call
+     * @returns an unsubscribe function
      */
-     async generateToken() {
-        if(!this.name) {
-            throw new Error("You need to set a name");
-        }
-        // TODO: add expiration and whatever
-        const token = await create({ alg: "HS512", typ: "JWT" }, {
-            id: this.id,
-            name: this.name
-        }, JWT_SECRET!);
+  on(
+    event: string,
+    listener: (payload?: WebSocketEvent) => void,
+  ): () => boolean {
+    const id = ++this.nextListenerId;
+    this.listeners.set(id, {
+      event: event.toUpperCase(),
+      listener,
+    });
 
-        return token;
+    // Return unsubscribe function
+    return () => this.listeners.delete(id);
+  }
+
+  /**
+     * Send a generic message to a client
+     * @param message message to deliver
+     */
+  async send(message: string) {
+    // TODO: something with status
+    if (this.socket.isClosed) {
+      this.handleEvent(Event.Close);
+      return;
+    }
+    // Send to the client
+    await this.socket.send(message);
+  }
+
+  /**
+   * Broadcast a message to all clients in the same room
+   * @param message the message to send
+   */
+  async broadcast(message: string) {
+    for (const [, socket] of this.server.sockets) {
+      if (socket.room === this.room) { // TODO: exclude this socket
+        await socket.send(message);
+      }
+    }
+  }
+
+  /** Pass through the std socket ping */
+  async ping() {
+    return await this.socket.ping();
+  }
+
+  /** Close and fire close event */
+  async close() {
+    if (!this.socket.isClosed) {
+      await this.socket.close();
     }
 
-    /**
+    this.handleEvent(Event.Close);
+
+    return;
+  }
+
+  /**
+   * Get a new token for the client
+   * @returns a new JWT
+   */
+  async generateToken() {
+    if (!this.name) {
+      throw new Error("You need to set a name");
+    }
+    // TODO: add expiration and whatever
+    const token = await create({ alg: "HS512", typ: "JWT" }, {
+      id: this.id,
+      name: this.name,
+    }, JWT_SECRET!);
+
+    return token;
+  }
+
+  /**
      * Set the user's name
      * @param name the user's name
      * @returns true if successful
      */
-    async setName(name = generateName()) {
-        const oldName = this.name;
+  async setName(name = generateName()) {
+    const oldName = this.name;
 
-        // TODO: validate name format and length
-        this.name = name;
+    // TODO: validate name format and length
+    this.name = name;
 
-        // Generate the new token
-        const token = await this.generateToken();
+    // Generate the new token
+    const token = await this.generateToken();
 
-        // Notify the client
-        await this.send(merge("TOKEN", token));
-        await this.send(merge("ID", this.id));
-        await this.send(merge("NAME", this.name));
+    // Notify the client
+    await this.send(merge("TOKEN", token));
+    await this.send(merge("ID", this.id));
+    await this.send(merge("NAME", this.name));
 
-        if(this.room) {
-            // Send to all clients in the room
-            broadcast(this.room, merge("SETNAME", this.id, oldName!, this.name));
-        } else if(oldName) {
-            await this.send(merge("SETNAME", this.id, oldName!, this.name));
-        }
-
-        return true;
+    if (this.room) {
+      // Send to all clients in the room
+      await this.broadcast(merge("SETNAME", this.id, oldName!, this.name));
+    } else if (oldName) {
+      await this.send(merge("SETNAME", this.id, oldName!, this.name));
     }
 
-    /**
+    return true;
+  }
+
+  /**
      * Migrate a client to use data from a token
      * @param token the token containing the data to migrate to
      * @returns true if successful
      */
-    async migrate(token: string) {
-        const oldId = this.id;
-        const oldName = this.name;
+  async migrate(token: string) {
+    const oldId = this.id;
+    const oldName = this.name;
 
-        try {
-            const payload: any = await verify(token, JWT_SECRET!, "HS512");
-            this.id = payload.id;
-            this.name = payload.name;
+    try {
+      const payload = await verify(token, JWT_SECRET!, "HS512") as {
+        id: string;
+        name: string;
+      };
 
-            // TODO: this seems sketch
-            sockets.set(this.id, this);
-            sockets.delete(oldId);
+      this.id = payload.id;
+      this.name = payload.name;
 
-            if(this.room) {
-                // Send to all clients in the room
-                await broadcast(this.room, merge("MIGRATED", oldId, oldName!, this.id, this.name!));
-            } else {
-                await this.send(merge("ID", this.id));
-                await this.send(merge("NAME", this.name!));
-            }
-        } catch (err) {
-            throw new Error("Unable to verify token");
-        }
+      // Migrate to new id in map
+      this.server.migrate(oldId, this.id);
+
+      if (this.room) {
+        // Send to all clients in the room
+        await this.broadcast(
+          merge("MIGRATED", oldId, oldName!, this.id, this.name!),
+        );
+      } else {
+        await this.send(merge("ID", this.id));
+        await this.send(merge("NAME", this.name!));
+      }
+    } catch (_err) {
+      throw new Error("Unable to verify token");
     }
+  }
 
-    /**
+  /**
      * Join a room and notify participants
      * @param room the room to join
      */
-    async join(room: string) {
-        if(!this.name) {
-            throw new Error("You need to set a name before joining a room");
-        }
-
-        const oldRoom = this.room;
-        this.room = room;
-
-        // Leave room if they're in one
-        if(oldRoom) {
-            // Notify others
-            broadcast(oldRoom, merge("LEFT", this.id, this.name));
-        }
-
-        await this.send(merge("ROOM", room));
-
-        // Notify others
-        broadcast(room, merge("JOINED", this.id, this.name!));
+  async join(room: string) {
+    if (!this.name) {
+      throw new Error("You need to set a name before joining a room");
     }
 
-    /**
+    // Leave room if they're in one
+    if (this.room) {
+      // Notify others
+      await this.broadcast(merge("LEFT", this.id, this.name));
+    }
+
+    this.room = room;
+
+    await this.send(merge("ROOM", room));
+
+    // Notify others
+    await this.broadcast(merge("JOINED", this.id, this.name!));
+  }
+
+  /**
      * Leave a room and notify participants
      */
-    async leave() {
-        if(!this.room) {
-            throw new Error("You're not in a room");
-        }
-
-        const room = this.room;
-
-        await this.send("ROOM");
-
-        this.room = null;
-
-        // Notify others
-        await broadcast(room, merge("LEFT", this.id, this.name!));
+  async leave() {
+    if (!this.room) {
+      throw new Error("You're not in a room");
     }
 
+    // Notify others
+    await this.broadcast(merge("LEFT", this.id, this.name!));
+
+    this.room = null;
+
+    await this.send("ROOM");
+  }
 }

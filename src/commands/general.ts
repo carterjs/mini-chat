@@ -1,12 +1,12 @@
-import { CommandDefinitions } from "./types.ts";
+import { ChatSocket } from "../ChatSocket.ts";
 
-const generalCommands: CommandDefinitions = {
-    "ping": (socket) => {
-        socket.send("PONG");
-    },
-    "help": (socket) => {
-        socket.send(`SUCCESS "You're on your own"`);
-    }
-}
+const generalCommands = {
+  "ping": (socket: ChatSocket) => {
+    socket.send("PONG");
+  },
+  "help": (socket: ChatSocket) => {
+    socket.send(`SUCCESS "You're on your own"`);
+  },
+};
 
 export default generalCommands;
