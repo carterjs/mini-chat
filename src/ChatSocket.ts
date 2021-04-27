@@ -148,11 +148,11 @@ export class ChatSocket {
    * @param message the message to send
    */
   async broadcast(message: string) {
-    for (const [, socket] of this.server.sockets) {
-      if (socket.room === this.room) { // TODO: exclude this socket
-        await socket.send(message);
-      }
+    if(!this.room) {
+      throw new Error("You're not in a room");
     }
+    
+    await this.server.broadcast(this.room, message);
   }
 
   /** Pass through the std socket ping */

@@ -92,6 +92,19 @@ export class ChatServer {
   }
 
   /**
+   * Send a message to all local clients in the same room
+   * @param room the room to send to
+   * @param message the message to send
+   */
+  async broadcast(room: string, message: string) {
+    for (const [, socket] of this.sockets) {
+      if (socket.room === room) { // TODO: exclude this socket
+        await socket.send(message);
+      }
+    }
+  }
+
+  /**
    * Move a socket from one id to another in the map
    * @param oldId the previous id
    * @param newId the new id

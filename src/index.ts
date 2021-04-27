@@ -12,11 +12,11 @@ import {
 // Load in environment variables
 import "https://deno.land/x/dotenv/load.ts";
 
-import { ChatServer } from "./ChatServer.ts";
+import { ScalableChatServer } from "./ScalableChatServer.ts";
 
 import commands from "./commands/index.ts";
 
-const chatServer = new ChatServer(commands);
+const chatServer = new ScalableChatServer(commands);
 
 addEventListener("unload", (e) => {
   console.log(e);
