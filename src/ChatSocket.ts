@@ -136,7 +136,6 @@ export class ChatSocket {
      * @param message message to deliver
      */
   async send(message: string) {
-    // TODO: something with status
     if (this.socket.isClosed) {
       this.handleEvent(Event.Close);
       return;
@@ -228,29 +227,19 @@ export class ChatSocket {
     const oldId = this.id;
     const oldName = this.name;
 
-    try {
-      const payload = await verify(token, JWT_SECRET!, "HS512") as {
-        id: string;
-        name: string;
-      };
+    const payload = await verify(token, JWT_SECRET!, "HS512") as {
+      id: string;
+      name: string;
+    };
 
-      this.id = payload.id;
-      this.name = payload.name;
+    // Migrate to new id in map
+    await this.server.migrate(oldId, payload.id, payload.name);
 
-      // Migrate to new id in map
-      this.server.migrate(oldId, this.id);
-
-      if (this.room) {
-        // Send to all clients in the room
-        await this.broadcast(
-          merge("EVENT", `${oldName} is now ${this.name}`),
-        );
-      } else {
-        await this.send(merge("ID", this.id));
-        await this.send(merge("NAME", this.name!));
-      }
-    } catch (_err) {
-      throw new Error("Unable to verify token");
+    if (this.room) {
+      // Send to all clients in the room
+      await this.broadcast(
+        merge("EVENT", `${oldName} is now ${this.name}`),
+      );
     }
   }
 
@@ -281,10 +270,8 @@ export class ChatSocket {
     }
 
     if(owner) {
-      // Room exists
-      if(owner === this.id) {
-        await this.send(`INFO "You own this room"`);
-      }
+      // Keep alive so the state doesn't expire before attendance is taken
+      await redisClient.expire(`room:${room}`, 60);
     } else {
       // Claim the room with a transaction
       const tx = redisClient.tx();

@@ -1,4 +1,5 @@
 import { getResponse } from "./welcomeBot.js";
+import { parseCommand } from "./parseCommand.js";
 
 /****************
  * Declarations *
@@ -15,6 +16,7 @@ var block;
 var name;
 var id;
 var room;
+var afk = false;
 var topic;
 
 // Get the elements
@@ -58,19 +60,28 @@ function send(input) {
 
   // Check if it's a command
   if (!/^\/\w+/.test(input)) {
+    // Render our own message optimistically
+    renderChat(id, name, input);
+    
     if (room) {
       // Just text - make it a command
       ws.send(`SEND "${input}"`);
     } else {
-      // Send their own message back
-      renderChat(id, name, input);
-
       setTimeout(() => {
         renderChat(0, "WelcomeBot", getResponse(input));
       }, 200);
     }
   } else {
-    ws.send(input.slice(1));
+    // It's a command
+    const command = input.slice(1).split(" ")[0].toUpperCase();
+
+    switch(command) {
+      case "HELP":
+        renderHelp();
+        break;
+      default:
+        ws.send(input.slice(1));
+    }
   }
 }
 
@@ -92,6 +103,18 @@ function parseList(message) {
   );
 
   return components;
+}
+
+function addLinks(element) {
+  // Make links into links
+  element.innerHTML = element.innerText.replace(/(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/ig, (match) => {
+    console.log(match);
+    let url = match;
+    if(!match.startsWith("http")) {
+      url = "https://" + match;
+    }
+    return `<a href="${url}" target="_blank">${match}</a>`;
+  });
 }
 
 /**
@@ -156,10 +179,85 @@ function renderChat(senderId, senderName, message) {
   bubble.className = "message__bubble";
   bubble.innerText = message;
 
+  addLinks(bubble);
+
   // Add to page
   block.bubbles.appendChild(bubble);
   block.time = Date.now();
   bubble.scrollIntoView();
+}
+
+function renderHelp() {
+  const message = document.createElement("div");
+  message.className = "message message--help";
+
+  const commandList = document.createElement("ul");
+  commandList.className = "command-list";
+
+  [
+    {
+      name: "help",
+      description: "Show this list"
+    },
+    {
+      name: "join",
+      args: ["room"],
+      description: "Join a room"
+    },
+    {
+      name: "leave",
+      description: "Leave a room"
+    },
+    {
+      name: "name",
+      description: "View your name"
+    },
+    {
+      name: "name",
+      args: ["name"],
+      description: "Set your name"
+    },
+    {
+      name: "topic",
+      args: ["topic"],
+      description: "Set the room's topic (if you're the owner)"
+    },
+    {
+      name: "qr",
+      description: "Get a QR code for the current room"
+    }
+  ].forEach((command) => {
+    const listItem = document.createElement("li");
+
+    // Command name
+    const name = document.createElement("strong");
+    name.className = "command-list__name";
+    name.innerText = "/" + command.name;
+    listItem.appendChild(name);
+
+    if(command.args) {
+      // Add commands
+      for(let i = 0; i < command.args.length; i++) {
+        const arg = document.createElement("span");
+        arg.innerText = " <" + command.args[i] + ">";
+        arg.className = "command-list__arg";
+        listItem.appendChild(arg);
+        listItem.appendChild(document.createTextNode(" "))
+      }
+    }    
+
+    // Description
+    const description = document.createElement("p");
+    description.className = "command-list__description";
+    description.innerText = command.description;
+    listItem.appendChild(description);
+
+    commandList.appendChild(listItem);
+  });
+
+  message.appendChild(commandList);
+  messages.appendChild(message);
+  messages.scrollIntoView();
 }
 
 /**
@@ -214,6 +312,9 @@ function handleMessage(rawMessage) {
     /* Room */
 
     case "ROOM": {
+      if(afk) {
+        return;
+      }
       if (components[1]) {
 
         if(components[1] === room) {
@@ -233,6 +334,7 @@ function handleMessage(rawMessage) {
         // Update header
         roomElement.innerText = room;
         topicElement.innerText = topic;
+        addLinks(topicElement);
       } else {
         // Left the room
         room = null;
@@ -252,14 +354,18 @@ function handleMessage(rawMessage) {
     }
 
     case "TOPIC":
-      if(components[1]) {
-        topic = components[1];
+        topic = components[1] || "";
 
         // update header
         topicElement.innerText = topic;
-      }
+        addLinks(topicElement);
       break;
     case "CHAT": {
+      if(components[1] === id) {
+        // It's my message
+        
+        return;
+      }
       renderChat(components[1], components[2], components[3]);
       break;
     }
@@ -378,7 +484,7 @@ nameForm.onsubmit = function (e) {
 
   if (ws) {
     // Websocket exists - it's connected
-    send(`/SETNAME "${nameElement.value}"`);
+    send(`/NAME "${nameElement.value}"`);
     nameFormScreen.classList.remove("fade-in");
     nameFormScreen.classList.add("fade-out");
     chatScreen.classList.add("fade-in");
@@ -406,6 +512,27 @@ window.onunload = function () {
     ws.close();
   }
 };
+
+document.addEventListener("visibilitychange", function() {
+  console.log(document.visibilityState);
+  if(!ws) {
+    return;
+  }
+
+  if(location.pathname.length <= 1) {
+    return;
+  }
+
+  if(document.visibilityState === "hidden") {
+    send("/leave");
+    renderMessage("event", "You left");
+    afk = true;
+  } else if(location.pathname.length > 1) {
+    send(`/join ${location.pathname.slice(1)}`);
+    renderMessage("warning", "You may have missed messages while you were away");
+    afk = false;
+  }
+});
 
 /*********
  * Start *

@@ -1,6 +1,12 @@
 import { ChatSocket } from "../ChatSocket.ts";
 
 const authCommands = {
+  "id": async (socket: ChatSocket) => {
+    await socket.send(`INFO ${socket.id}`);
+  },
+  "room": async (socket: ChatSocket) => {
+    await socket.send(`INFO ${socket.room}`);
+  },
   "token": async (socket: ChatSocket) => {
     try {
       const token = await socket.generateToken();
@@ -15,6 +21,7 @@ const authCommands = {
       await socket.migrate(token);
     } catch (err) {
       await socket.send(`ERROR "${err.message}"`);
+      await socket.close();
     }
   },
   "name": async (socket: ChatSocket, name?: string) => {

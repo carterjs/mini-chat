@@ -145,14 +145,28 @@ export class ChatServer {
    * @param oldId the previous id
    * @param newId the new id
    */
-  migrate(oldId: string, newId: string) {
+  async migrate(oldId: string, newId: string, newName: string) {
+    // Current socket
     const socket = this.sockets.get(oldId);
 
     if (!socket) {
       throw new Error("No socket with id " + oldId);
     }
 
-    this.sockets.set(newId, socket);
     this.sockets.delete(oldId);
+
+    // Is the id taken on this node?
+    if(this.sockets.has(newId)) {
+      throw new Error("ID already in use");
+    }
+    
+    socket.id = newId;
+    socket.name = newName;
+
+    // Send to client
+    await socket.send(`ID ${newId}`);
+    await socket.send(`NAME ${newName}`);
+
+    this.sockets.set(newId, socket);
   }
 }

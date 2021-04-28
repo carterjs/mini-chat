@@ -6,17 +6,16 @@
 
 ### Identification
 
-- `ID` - gets the user's id
 - `TOKEN` - gets a new token
-- `NAME <name>` - gives the user a random name
+- `NAME <name>` - Sets the user's name
 - `MIGRATE <token>` - migrate the current user to use the id and name contained
   in the token
-- `TOPIC <topic>` - set the room's topic
 
 ### Rooms
 
 - `JOIN <room>` - join a room
 - `LEAVE <room>` - leave the current room
+- `TOPIC <topic>` - set the room's topic
 
 ---
 

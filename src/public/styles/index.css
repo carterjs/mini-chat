@@ -15,6 +15,14 @@ body {
     border: none, 1px solid #3b3bbb;
 }
 
+a {
+    color: inherit;
+}
+
+a:hover {
+    opacity: 0.75;
+}
+
 html {
     height: -webkit-fill-available;
 }
@@ -25,7 +33,7 @@ html {
     width: 100%;
     margin: 0 auto;
     max-width: 960px;
-    padding: 1rem;
+    padding: 0 1rem;
     box-sizing: border-box;
 }
 
@@ -100,23 +108,26 @@ color: #ccc;
     color: #ccc;
 }
 
-/* TODO: safe area */
 /* An individual message */
 .message {
     line-height: 1.4;
     display: block;
     margin: 0.5rem 0 0 0;
-    padding: 0.5rem;
+    padding: 0.5rem 1rem;
     color: #eee;
     word-wrap: break-word;
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;
     background: linear-gradient(90deg, #222, #111);
+    border-left: 1px solid;
 }
 
 .message--chat {
     background: transparent;
+    border: none;
+    padding: 0;
+    margin: 1rem 0;
 }
 
 /* General info */
@@ -130,12 +141,58 @@ color: #ccc;
     display: block;
     text-align: center;
     background: transparent;
+    border: none;
 }
 .message--event::before {
     content: "( ";
 }
 .message--event::after {
     content: " )";
+}
+
+.message--help {
+    /* background: transparent; */
+}
+
+.command-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.command-list li {
+    margin-bottom: 1rem;
+}
+.command-list li:last-child {
+    margin-bottom: 0;
+}
+
+.command-list__name {
+    color: #fff;
+}
+
+.command-list__arg {
+    font-style: italic;
+    /* font-size: 0.9rem; */
+}
+
+/* .command-list__arg::before {
+    content: "<";
+}
+
+.command-list__arg::after {
+    content: ">";
+} */
+
+.command-list__arg::before, .command-list__arg::after {
+    color: #888;
+    /* margin: 0 0.25rem; */
+}
+
+.command-list__description {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+    color: #ccc;
 }
 
 /* Error messages */
@@ -238,7 +295,7 @@ color: #ccc;
 .textbox__input {
     outline: none;
     flex: auto;
-    padding: 0.5rem;
+    padding: 1.5rem 1rem;
     word-wrap: break-word;
     max-width: auto;
     min-width: 0;
@@ -246,6 +303,9 @@ color: #ccc;
 .textbox__input:empty::before {
     color: #888;
     content: attr(placeholder)
+}
+.textbox__button {
+    padding: 1.5rem 1rem;
 }
 
 .main {
@@ -262,6 +322,7 @@ color: #ccc;
 }
 
 .header {
+    padding: 1rem 0 0.5rem 0;
     position: sticky;
     top: 0;
     background: linear-gradient(180deg, #111111, #11111100);
