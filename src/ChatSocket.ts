@@ -12,8 +12,6 @@ import {
   WebSocketEvent,
 } from "./deps.ts";
 
-import { generateName } from "./generateName.ts";
-import { merge } from "./merge.ts";
 import { ChatServer } from "./ChatServer.ts";
 import { getRedisClient } from "./getRedisClient.ts";
 
@@ -149,7 +147,7 @@ export class ChatSocket {
    * @param message the message to send
    */
   async broadcast(message: string) {
-    if(!this.room) {
+    if (!this.room) {
       throw new Error("You're not in a room");
     }
 
@@ -180,7 +178,7 @@ export class ChatSocket {
     if (!this.name) {
       throw new Error("You need to set a name");
     }
-    // TODO: add expiration and whatever
+
     const token = await create({ alg: "HS512", typ: "JWT" }, {
       id: this.id,
       name: this.name,
@@ -194,25 +192,42 @@ export class ChatSocket {
      * @param name the user's name
      * @returns true if successful
      */
-  async setName(name = generateName()) {
+  async setName(name: string) {
     const oldName = this.name;
 
-    // TODO: validate name format and length
+    // Verify name isn't empty
+    if (!name) {
+      throw new Error("Name cannot be empty");
+    }
+
+    // Check that it isn't too long
+    if (name.length > 32) {
+      throw new Error("That name is too long");
+    }
+
+    // Make sure no illegal characters
+    if (!/^\w+$/.test(name)) {
+      throw new Error(
+        "Names may only contain letters, numbers, and underscores",
+      );
+    }
+
+    // Set the name
     this.name = name;
 
     // Generate the new token
     const token = await this.generateToken();
 
     // Notify the client
-    await this.send(merge("TOKEN", token));
-    await this.send(merge("ID", this.id));
-    await this.send(merge("NAME", this.name));
+    await this.send(`TOKEN ${token}`);
+    await this.send(`ID ${this.id}`);
+    await this.send(`NAME ${this.name}`);
 
     if (this.room) {
       // Send to all clients in the room
-      await this.broadcast(merge("EVENT", `${oldName} changed their name to ${name}`));
+      await this.broadcast(`EVENT "${oldName} changed their name to ${name}"`);
     } else if (oldName) {
-      await this.send(merge("EVENT", `You changed your name to ${name}`));
+      await this.send(`EVENT "You changed your name to ${name}"`);
     }
 
     return true;
@@ -237,9 +252,7 @@ export class ChatSocket {
 
     if (this.room) {
       // Send to all clients in the room
-      await this.broadcast(
-        merge("EVENT", `${oldName} is now ${this.name}`),
-      );
+      await this.broadcast(`EVENT "${oldName} is now ${this.name}"`);
     }
   }
 
@@ -255,21 +268,25 @@ export class ChatSocket {
     // Leave room if they're in one
     if (this.room) {
       // Notify others
-      await this.broadcast(merge("EVENT", `${this.name} left`));
+      await this.broadcast(`EVENT "${this.name} left"`);
     }
 
     this.room = room;
 
     // Get room data
-    let [ owner, topic = "" ] = await redisClient.hmget(`room:${room}`, "owner", "topic");
+    const [owner, topic = ""] = await redisClient.hmget(
+      `room:${room}`,
+      "owner",
+      "topic",
+    );
 
-    await this.send(merge("ROOM", room));
+    await this.send(`ROOM ${room}`);
 
-    if(topic) {
-      await this.send(merge("TOPIC", topic));
+    if (topic) {
+      await this.send(`TOPIC ${topic}`);
     }
 
-    if(owner) {
+    if (owner) {
       // Keep alive so the state doesn't expire before attendance is taken
       await redisClient.expire(`room:${room}`, 60);
     } else {
@@ -291,17 +308,17 @@ export class ChatSocket {
     }
 
     // Notify others
-    await this.broadcast(merge("EVENT", `${this.name} joined`));
+    await this.broadcast(`EVENT "${this.name} joined"`);
   }
 
   async setRoomTopic(topic: string) {
-    if(!this.room) {
+    if (!this.room) {
       throw new Error("You're not in a room");
     }
 
-    let [ owner ] = await redisClient.hmget(`room:${this.room}`, "owner");
+    const [owner] = await redisClient.hmget(`room:${this.room}`, "owner");
 
-    if(owner !== this.id) {
+    if (owner !== this.id) {
       throw new Error("You don't have permission to change the topic");
     }
 
@@ -321,7 +338,7 @@ export class ChatSocket {
     }
 
     // Notify others
-    await this.broadcast(merge("EVENT", `${this.name} left`));
+    await this.broadcast(`EVENT "${this.name} left"`);
 
     this.room = null;
 

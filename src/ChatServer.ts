@@ -36,7 +36,7 @@ export class ChatServer {
     // Listen for messages
     (async () => {
       for await (const { channel, message } of messagesSub.receive()) {
-        const [,room] = channel.split(":");
+        const [, room] = channel.split(":");
         // Broadcast to local clients
         for (const [, socket] of this.sockets) {
           if (socket.room === room) {
@@ -49,7 +49,7 @@ export class ChatServer {
 
   /** Ping sockets regularly and update their attendance in the database */
   async takeAttendance() {
-    let rooms = new Set();
+    const rooms = new Set();
     for (const [, socket] of this.sockets) {
       // Do we already know whether or not it's closed?
       if (socket.isClosed) {
@@ -60,7 +60,7 @@ export class ChatServer {
       // Otherwise, send a ping to check
       try {
         await socket.ping();
-        if(socket.room) {
+        if (socket.room) {
           rooms.add(socket.room);
         }
       } catch (_err) {
@@ -69,14 +69,14 @@ export class ChatServer {
     }
 
     // Keep those rooms alive
-    if(rooms.size > 0) {
+    if (rooms.size > 0) {
       try {
         const pipeline = redisClient.pipeline();
-        for(let room of rooms) {
+        for (const room of rooms) {
           pipeline.expire(`room:${room}`, 60);
         }
         await pipeline.flush();
-      } catch(err) {
+      } catch (err) {
         console.error("Failed to keep rooms alive:", err.message);
       }
     }
@@ -137,7 +137,7 @@ export class ChatServer {
    */
   async broadcast(room: string, message: string) {
     // Publish to pubsub
-    redisClient.publish(`room:${room}`, message);
+    await redisClient.publish(`room:${room}`, message);
   }
 
   /**
@@ -157,12 +157,12 @@ export class ChatServer {
 
     // Is there a socket already connected with that id?
     const conflictSocket = this.sockets.get(newId);
-    if(conflictSocket) {
-      if(!conflictSocket.isClosed) {
+    if (conflictSocket) {
+      if (!conflictSocket.isClosed) {
         throw new Error("ID already in use");
       }
     }
-    
+
     socket.id = newId;
     socket.name = newName;
 

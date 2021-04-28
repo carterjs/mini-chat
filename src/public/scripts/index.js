@@ -1,5 +1,4 @@
 import { getResponse } from "./welcomeBot.js";
-import { parseCommand } from "./parseCommand.js";
 
 /****************
  * Declarations *
@@ -62,7 +61,7 @@ function send(input) {
   if (!/^\/\w+/.test(input)) {
     // Render our own message optimistically
     renderChat(id, name, input);
-    
+
     if (room) {
       // Just text - make it a command
       ws.send(`SEND "${input}"`);
@@ -75,7 +74,7 @@ function send(input) {
     // It's a command
     const command = input.slice(1).split(" ")[0].toUpperCase();
 
-    switch(command) {
+    switch (command) {
       case "HELP":
         renderHelp();
         break;
@@ -107,13 +106,16 @@ function parseList(message) {
 
 function addLinks(element) {
   // Make links into links
-  const withLinks = element.innerHTML.replace(/(https?:\/\/)?[^\s\.\/#?]+(\.[^\s\.\/#?]+)+([^\s\.]+(\.[^\s\.\/])*)*/ig, (match) => {
-    let url = match;
-    if(!match.startsWith("http")) {
-      url = "https://" + match;
-    }
-    return `<a href="${url}" target="_blank">${match}</a>`;
-  });
+  const withLinks = element.innerHTML.replace(
+    /(https?:\/\/)?[^\s\.\/#?]+(\.[^\s\.\/#?]+)+([^\s\.]+(\.[^\s\.\/])*)*/ig,
+    (match) => {
+      let url = match;
+      if (!match.startsWith("http")) {
+        url = "https://" + match;
+      }
+      return `<a href="${url}" target="_blank">${match}</a>`;
+    },
+  );
 
   element.innerHTML = withLinks;
 }
@@ -198,35 +200,35 @@ function renderHelp() {
   [
     {
       name: "help",
-      description: "Show this list"
+      description: "Show this list",
     },
     {
-      name: "join",
-      args: ["room"],
-      description: "Join a room"
-    },
-    {
-      name: "leave",
-      description: "Leave a room"
-    },
-    {
-      name: "name",
-      description: "View your name"
-    },
-    {
-      name: "name",
-      args: ["name"],
-      description: "Set your name"
+      name: "qr",
+      description: "Get a QR code for the current room",
     },
     {
       name: "topic",
       args: ["topic"],
-      description: "Set the room's topic (if you're the owner)"
+      description: "Set the room's topic (if you're the owner)",
     },
     {
-      name: "qr",
-      description: "Get a QR code for the current room"
-    }
+      name: "leave",
+      description: "Leave a room",
+    },
+    {
+      name: "join",
+      args: ["room"],
+      description: "Join a room",
+    },
+    {
+      name: "name",
+      description: "View your name",
+    },
+    {
+      name: "name",
+      args: ["name"],
+      description: "Change your name",
+    },
   ].forEach((command) => {
     const listItem = document.createElement("li");
 
@@ -236,16 +238,16 @@ function renderHelp() {
     name.innerText = "/" + command.name;
     listItem.appendChild(name);
 
-    if(command.args) {
+    if (command.args) {
       // Add commands
-      for(let i = 0; i < command.args.length; i++) {
+      for (let i = 0; i < command.args.length; i++) {
         const arg = document.createElement("span");
         arg.innerText = " <" + command.args[i] + ">";
         arg.className = "command-list__arg";
         listItem.appendChild(arg);
-        listItem.appendChild(document.createTextNode(" "))
+        listItem.appendChild(document.createTextNode(" "));
       }
-    }    
+    }
 
     // Description
     const description = document.createElement("p");
@@ -258,7 +260,7 @@ function renderHelp() {
 
   message.appendChild(commandList);
   messages.appendChild(message);
-  messages.scrollIntoView();
+  commandList.lastChild.scrollIntoView();
 }
 
 /**
@@ -312,47 +314,47 @@ function handleMessage(rawMessage) {
 
     /* Room */
 
-    case "ROOM": {
-      if(afk) {
-        return;
-      }
-      if (components[1]) {
-
-        if(components[1] === room) {
+    case "ROOM":
+      {
+        if (afk) {
           return;
         }
+        if (components[1]) {
+          if (components[1] === room) {
+            return;
+          }
 
-        // Clear screen if already in a room
-        messages.innerHTML = "";
+          // Clear screen if already in a room
+          messages.innerHTML = "";
 
-        // Save room, reset topic
-        room = components[1];
-        topic = "";
+          // Save room, reset topic
+          room = components[1];
+          topic = "";
 
-        // Update navigation
-        history.pushState({}, `/${room}`, `/${room}`);
+          // Update navigation
+          history.pushState({}, `/${room}`, `/${room}`);
 
-        // Update header
-        roomElement.innerText = room;
-        topicElement.innerHTML = topic;
-        addLinks(topicElement);
-      } else {
-        // Left the room
-        room = null;
-        topic = null;
-        roomElement.innerText = "";
-        topicElement.innerText = "";
+          // Update header
+          roomElement.innerText = room;
+          topicElement.innerHTML = topic;
+          addLinks(topicElement);
+        } else {
+          // Left the room
+          room = null;
+          topic = null;
+          roomElement.innerText = "";
+          topicElement.innerText = "";
 
-        messages.innerHTML = "";
-        history.pushState({}, "chat", "/");
-        renderChat(
-          0,
-          "WelcomeBot",
-          "You're no longer in a room! Type /join followed by a room id to join one.",
-        );
+          messages.innerHTML = "";
+          history.pushState({}, "chat", "/");
+          renderChat(
+            0,
+            "WelcomeBot",
+            "You're no longer in a room! Type /join followed by a room id to join one.",
+          );
+        }
       }
-    }
-    break;
+      break;
     case "TOPIC":
       topic = components[1] || "";
 
@@ -361,9 +363,9 @@ function handleMessage(rawMessage) {
       addLinks(topicElement);
       break;
     case "CHAT": {
-      if(components[1] === id) {
+      if (components[1] === id) {
         // It's my message
-        
+
         return;
       }
       renderChat(components[1], components[2], components[3]);
@@ -394,8 +396,7 @@ function connect() {
 
   // When connected
   ws.onopen = function () {
-
-    if(connectionAttempts) {
+    if (connectionAttempts) {
       renderMessage("success", "Connected to the server!");
     }
 
@@ -462,16 +463,16 @@ function connect() {
  ****************************/
 
 // Set room when the user uses browser nav buttons
-window.onpopstate = function() {
-  if(!ws) {
+window.onpopstate = function () {
+  if (!ws) {
     return;
   }
 
-  if(location.pathname.length > 1) {
-    if(location.pathname.slice(1) !== room) {
+  if (location.pathname.length > 1) {
+    if (location.pathname.slice(1) !== room) {
       ws.join(location.pathname.slice(1));
     }
-  } else if(room) {
+  } else if (room) {
     ws.leave();
   }
 };
@@ -511,22 +512,25 @@ window.onunload = function () {
   }
 };
 
-document.addEventListener("visibilitychange", function() {
-  if(!ws) {
+document.addEventListener("visibilitychange", function () {
+  if (!ws) {
     return;
   }
 
-  if(location.pathname.length <= 1) {
+  if (location.pathname.length <= 1) {
     return;
   }
 
-  if(document.visibilityState === "hidden") {
+  if (document.visibilityState === "hidden") {
     send("/leave");
     renderMessage("event", "You left");
     afk = true;
-  } else if(location.pathname.length > 1) {
+  } else if (location.pathname.length > 1) {
     send(`/join ${location.pathname.slice(1)}`);
-    renderMessage("warning", "You may have missed messages while you were away");
+    renderMessage(
+      "warning",
+      "You may have missed messages while you were away",
+    );
     afk = false;
   }
 });

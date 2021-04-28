@@ -3,7 +3,9 @@ import { ChatSocket } from "../ChatSocket.ts";
 const roomCommands = {
   "join": async (socket: ChatSocket, room: string) => {
     if (!room) {
-      await socket.send(`ERROR "You need to specify which room you'd like to join"`);
+      await socket.send(
+        `ERROR "You need to specify which room you'd like to join"`,
+      );
       return;
     }
 
@@ -39,10 +41,10 @@ const roomCommands = {
     const topic = components.join(" ");
     try {
       await socket.setRoomTopic(topic);
-      if(topic.length === 0) {
-        await socket.send(`WARNING "You just set an empty topic"`)
+      if (topic.length === 0) {
+        await socket.send(`WARNING "You just set an empty topic"`);
       }
-    } catch(err) {
+    } catch (err) {
       await socket.send(`ERROR "${err.message}"`);
     }
   },
