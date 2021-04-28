@@ -142,7 +142,6 @@ color: #ccc;
 .message--error {
     /* text-align: center; */
     color: #bb3b3b;
-    padding: 0.5rem 1rem;
 }
 
 /* Warning message */

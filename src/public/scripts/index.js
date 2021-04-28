@@ -37,6 +37,7 @@ function sendInput() {
       inputElement.focus();
     }
   } catch (err) {
+    renderMessage("error", "Couldn't send message");
     console.error(err.message);
   }
 }
@@ -65,7 +66,7 @@ function send(input) {
       renderChat(id, name, input);
 
       setTimeout(() => {
-        renderChat(0, "Welcome Bot", getResponse(input));
+        renderChat(0, "WelcomeBot", getResponse(input));
       }, 200);
     }
   } else {
@@ -189,13 +190,13 @@ function handleMessage(rawMessage) {
       } else if (!id) {
         renderChat(
           0,
-          "Welcome Bot",
-          "Welcome to carterjs chat! Type /help for a list of commands.",
+          "WelcomeBot",
+          "Welcome to carterjs chat!",
         );
         renderChat(
           0,
-          "Welcome Bot",
-          "You can type /join followed by anything to join a room.",
+          "WelcomeBot",
+          "You can type /join followed by a name to join a room",
         );
       }
 
@@ -243,7 +244,7 @@ function handleMessage(rawMessage) {
         history.pushState({}, "chat", "/");
         renderChat(
           0,
-          "Welcome Bot",
+          "WelcomeBot",
           "You're no longer in a room! Type /join followed by a room id to join one.",
         );
       }
@@ -290,6 +291,11 @@ function connect() {
 
   // When connected
   ws.onopen = function () {
+
+    if(connectionAttempts > 0) {
+      renderMessage("success", "Connected to the server!");
+    }
+
     // Reset attempts
     connectionAttempts = 0;
 

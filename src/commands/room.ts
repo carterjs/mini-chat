@@ -1,21 +1,14 @@
 import { ChatSocket } from "../ChatSocket.ts";
 
 const roomCommands = {
-  "room": async (socket: ChatSocket) => {
-    if (socket.room) {
-      await socket.send(`SUCCESS "You're in ${socket.room}"`);
-    } else {
-      await socket.send(`ERROR "You're not in a room"`);
-    }
-  },
   "join": async (socket: ChatSocket, room: string) => {
     if (!room) {
-      await socket.send(`ERROR "You must pass a room to join"`);
+      await socket.send(`ERROR "You need to specify which room you'd like to join"`);
       return;
     }
 
-    if (!/^[a-z0-9-_]+$/i.test(room)) {
-      await socket.send(`ERROR "That's not a valid room id"`);
+    if (!/^\w+$/i.test(room)) {
+      await socket.send(`ERROR "That's not a valid room"`);
       return;
     }
 
@@ -46,6 +39,9 @@ const roomCommands = {
     const topic = components.join(" ");
     try {
       await socket.setRoomTopic(topic);
+      if(topic.length === 0) {
+        await socket.send(`WARNING "You just set an empty topic"`)
+      }
     } catch(err) {
       await socket.send(`ERROR "${err.message}"`);
     }

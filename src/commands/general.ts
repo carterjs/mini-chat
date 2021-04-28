@@ -2,7 +2,7 @@ import { ChatSocket } from "../ChatSocket.ts";
 
 const generalCommands = {
   "ping": (socket: ChatSocket) => {
-    socket.send("SUCCESS PONG");
+    socket.send("SUCCESS PONG!");
   }
 };
 

@@ -46,7 +46,7 @@ for await (const req: ServerRequest of server) {
     }
   } else {
     // Serve client application
-    if (/^\/[a-z0-9-\._]*$/.test(req.url)) {
+    if (/^\/\w*$/.test(req.url)) {
       // chat.html
       const content = await getFileContent(req, "/public/index.html");
       req.respond(content);

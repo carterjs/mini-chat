@@ -283,7 +283,7 @@ export class ChatSocket {
     if(owner) {
       // Room exists
       if(owner === this.id) {
-        await this.send(`INFO "You're the owner"`);
+        await this.send(`INFO "You own this room"`);
       }
     } else {
       // Claim the room with a transaction
@@ -292,14 +292,15 @@ export class ChatSocket {
       // Set owner
       tx.hset(`room:${room}`, ["owner", this.id]);
 
-      // Expire in 10 seconds
-      tx.expire(`room:${room}`, 10);
+      // Expire in 60 seconds
+      tx.expire(`room:${room}`, 60);
 
       // Run transaction
       await tx.flush();
 
       // Notify user
       await this.send(`INFO "You've just claimed this room!"`);
+      await this.send(`INFO "You can use the /topic command to set a topic"`);
     }
 
     // Notify others

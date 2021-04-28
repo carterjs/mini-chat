@@ -70,13 +70,12 @@ export class ChatServer {
 
     // Keep those rooms alive
     if(rooms.size > 0) {
-      console.log("Setting expiry for rooms:", Array.from(rooms).join(", "));
       try {
-        const tx = redisClient.tx();
+        const pipeline = redisClient.pipeline();
         for(let room of rooms) {
-          tx.expire(`room:${room}`, 10);
+          pipeline.expire(`room:${room}`, 60);
         }
-        const replies = await tx.flush();
+        await pipeline.flush();
       } catch(err) {
         console.error("Failed to keep rooms alive:", err.message);
       }
