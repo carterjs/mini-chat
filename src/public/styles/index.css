@@ -113,7 +113,7 @@ color: #ccc;
 .message {
     line-height: 1.4;
     display: block;
-    margin: 0.5rem 0 0 0;
+    margin: 0.5rem 0;
     padding: 0.5rem 1rem;
     color: #eee;
     word-wrap: break-word;
@@ -143,6 +143,7 @@ color: #ccc;
     text-align: center;
     background: transparent;
     border: none;
+    padding: 0;
 }
 .message--event::before {
     content: "( ";

@@ -7,7 +7,7 @@ import { parseCommand } from "./parseCommand.js";
 
 // WS and connection state
 var ws;
-var connectionAttempts = 0;
+var connectionAttempts;
 
 // Message blocks
 var block;
@@ -107,14 +107,15 @@ function parseList(message) {
 
 function addLinks(element) {
   // Make links into links
-  element.innerHTML = element.innerText.replace(/(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/ig, (match) => {
-    console.log(match);
+  const withLinks = element.innerHTML.replace(/(https?:\/\/)?[^\s\.\/#?]+(\.[^\s\.\/#?]+)+([^\s\.]+(\.[^\s\.\/])*)*/ig, (match) => {
     let url = match;
     if(!match.startsWith("http")) {
       url = "https://" + match;
     }
     return `<a href="${url}" target="_blank">${match}</a>`;
   });
+
+  element.innerHTML = withLinks;
 }
 
 /**
@@ -289,7 +290,7 @@ function handleMessage(rawMessage) {
         renderChat(
           0,
           "WelcomeBot",
-          "Welcome to carterjs chat!",
+          `Welcome to carterjs chat!`,
         );
         renderChat(
           0,
@@ -333,7 +334,7 @@ function handleMessage(rawMessage) {
 
         // Update header
         roomElement.innerText = room;
-        topicElement.innerText = topic;
+        topicElement.innerHTML = topic;
         addLinks(topicElement);
       } else {
         // Left the room
@@ -350,16 +351,14 @@ function handleMessage(rawMessage) {
           "You're no longer in a room! Type /join followed by a room id to join one.",
         );
       }
-      break;
     }
-
+    break;
     case "TOPIC":
-      console.log("Topic!!!");
-        topic = components[1] || "";
+      topic = components[1] || "";
 
-        // update header
-        topicElement.innerText = topic;
-        addLinks(topicElement);
+      // update header
+      topicElement.innerText = topic;
+      addLinks(topicElement);
       break;
     case "CHAT": {
       if(components[1] === id) {
@@ -393,13 +392,10 @@ function connect() {
     `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`,
   );
 
-  // Track attempts
-  connectionAttempts++;
-
   // When connected
   ws.onopen = function () {
 
-    if(connectionAttempts > 0) {
+    if(connectionAttempts) {
       renderMessage("success", "Connected to the server!");
     }
 
@@ -449,14 +445,14 @@ function connect() {
       // Try again in a bit
       setTimeout(function () {
         renderMessage("info", "Trying to reconnect...");
+        connectionAttempts++;
         connect();
-      }, 3000);
+      }, 5000);
     }
   };
 
   // Receive messages
   ws.onmessage = function (e) {
-    console.log(e.data);
     handleMessage(e.data);
   };
 }
@@ -503,7 +499,7 @@ input.addEventListener("keypress", function (e) {
     try {
       sendInput();
     } catch (err) {
-      console.log(err.message);
+      console.error(err.message);
     }
   }
 });
@@ -516,7 +512,6 @@ window.onunload = function () {
 };
 
 document.addEventListener("visibilitychange", function() {
-  console.log(document.visibilityState);
   if(!ws) {
     return;
   }
