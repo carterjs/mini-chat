@@ -69,11 +69,18 @@ export class ChatServer {
     }
 
     // Keep those rooms alive
-    const pipeline = redisClient.pipeline();
-    for(let room of rooms) {
-      pipeline.expire(`room:${room}`, 10);
+    if(rooms.size > 0) {
+      console.log("Setting expiry for rooms:", Array.from(rooms).join(", "));
+      try {
+        const tx = redisClient.tx();
+        for(let room of rooms) {
+          tx.expire(`room:${room}`, 10);
+        }
+        const replies = await tx.flush();
+      } catch(err) {
+        console.error("Failed to keep rooms alive:", err.message);
+      }
     }
-    await pipeline.flush();
 
     // Run again in a bit
     setTimeout(this.takeAttendance.bind(this), 5000);
@@ -104,7 +111,7 @@ export class ChatServer {
         this.sockets.delete(socket.id);
 
         if (socket.room) {
-          await socket.broadcast(`LEFT ${socket.id} "${socket.name}"`);
+          await socket.broadcast(`EVENT "${socket.name} left"`);
         }
       });
 

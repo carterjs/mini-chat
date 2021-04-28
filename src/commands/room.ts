@@ -33,7 +33,8 @@ const roomCommands = {
       await socket.send(`ERROR "${err.message}"`);
     }
   },
-  "send": async (socket: ChatSocket, message: string) => {
+  "send": async (socket: ChatSocket, ...components: string[]) => {
+    const message = components.join(" ");
     try {
       // await socket.broadcastChat(message);
       await socket.broadcast(`CHAT ${socket.id} "${socket.name}" "${message}"`);
@@ -41,7 +42,8 @@ const roomCommands = {
       await socket.send(`ERROR "${err.message}"`);
     }
   },
-  "settopic": async (socket: ChatSocket, topic: string) => {
+  "topic": async (socket: ChatSocket, ...components: string[]) => {
+    const topic = components.join(" ");
     try {
       await socket.setRoomTopic(topic);
     } catch(err) {

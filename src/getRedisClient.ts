@@ -6,7 +6,6 @@ if(!Deno.env.get("REDIS_HOST")) {
 
 /** Get a client using the environment credentials */
 export async function getRedisClient() {
-    console.log(Deno.env.get("REDIS_HOST"));
     return await connect({
         hostname: Deno.env.get("REDIS_HOST")!,
         port: Deno.env.get("REDIS_PORT") || 6379,

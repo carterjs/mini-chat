@@ -10,6 +10,9 @@ body {
     flex-direction: column;
     min-height: 100vh;
     min-height: -webkit-fill-available;
+    padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0);
+    box-sizing: border-box;
+    border: none, 1px solid #3b3bbb;
 }
 
 html {
@@ -18,12 +21,12 @@ html {
 
 /* General container for responsive design */
 .container {
+    display: block;
+    width: 100%;
     margin: 0 auto;
     max-width: 960px;
     padding: 1rem;
     box-sizing: border-box;
-    width: 100%;
-    overflow: visible;
 }
 
 .container--narrow {
@@ -66,14 +69,16 @@ html {
     cursor: pointer;
     font: inherit;
     background: transparent;
-    padding: 0.5rem 2rem;
+    padding: 0.5rem;
     color: #fff;
     border: none;
     border-radius: 0.5rem;
+    text-shadow: inherit;
 }
 .button--filled {
     color: #3b3bbb;
     background-color: #fff;
+    padding: 0.5rem 2rem;
 }
 .button--right {
     float: right;
@@ -95,17 +100,6 @@ color: #ccc;
     color: #ccc;
 }
 
-/* Container for all messages */
-#messages {
-    flex: auto;
-    max-width: 100%;
-}
-.messages-container {
-    margin-bottom: 0;
-    flex: auto;
-    display: flex;
-    align-items: flex-end;
-}
 /* TODO: safe area */
 /* An individual message */
 .message {
@@ -121,17 +115,6 @@ color: #ccc;
     background: linear-gradient(90deg, #222, #111);
 }
 
-.message--room {
-    font-size: 2.5rem;
-    margin: 0;
-}
-
-.message--room::before {
-    content: "/";
-    margin-right: 0.5rem;
-    color: #3b3bbb;
-}
-
 .message--chat {
     background: transparent;
 }
@@ -141,7 +124,6 @@ color: #ccc;
     color: #3bbbbb;
 }
 
-/* Really important messages */
 .message--event {
     color: #aaa;
     font-style: italic;
@@ -244,7 +226,9 @@ color: #ccc;
     position: sticky;
     bottom: 0;
     display: block;
-    background: linear-gradient(0deg, #111, #11111100);
+    background: linear-gradient(0deg, #111111, #11111100);
+    text-shadow: 0 0 20px #000, 0 0 20px #000;
+    padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .textbox .container {
@@ -275,6 +259,37 @@ color: #ccc;
     flex: auto;
     display: flex;
     flex-direction: column;
+    justify-content: flex-end;
+}
+
+.header {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(180deg, #111111, #11111100);
+    text-shadow: 0 0 20px #000, 0 0 20px #000;
+    overflow: hidden;
+}
+
+.header__room {
+    margin: 0;
+}
+.header__room:empty {
+    text-align: center;
+}
+.header__room:empty::after {
+    content: "Welcome!";
+}
+.header__room:not(:empty):before {
+    content: "/";
+    margin-right: 0.5rem;
+    color: #3b3bbb;
+}
+.header__topic {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+.header__topic:empty {
+    display: none;
 }
 
 .loading-screen {

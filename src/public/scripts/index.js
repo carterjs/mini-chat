@@ -15,6 +15,7 @@ var block;
 var name;
 var id;
 var room;
+var topic;
 
 // Get the elements
 const nameFormScreen = document.getElementById("name-form-screen");
@@ -24,17 +25,8 @@ const nameElement = document.getElementById("name");
 const messages = document.getElementById("messages");
 const inputElement = document.getElementById("input");
 const sendButton = document.getElementById("send");
-
-/** Set the user's room based on the URL path */
-function setRoom() {
-  if (location.pathname === "/") {
-    document.title = "chat";
-    room = null;
-  } else {
-    document.title = location.pathname;
-    room = location.pathname.slice(1);
-  }
-}
+const roomElement = document.getElementById("room");
+const topicElement = document.getElementById("topic");
 
 /** Send input from the input element as a command (even if it's a message) */
 function sendInput() {
@@ -181,6 +173,7 @@ function handleMessage(rawMessage) {
   switch (components[0]) {
     /* Server responses */
     case "INFO":
+    case "EVENT":
     case "SUCCESS":
     case "WARNING":
     case "ERROR":
@@ -193,7 +186,6 @@ function handleMessage(rawMessage) {
       if (!id && location.pathname.length > 1) {
         // First time identifying and there's a pathname - join the room
         send(`/JOIN ${location.pathname.slice(1)}`);
-        setRoom();
       } else if (!id) {
         renderChat(
           0,
@@ -222,34 +214,33 @@ function handleMessage(rawMessage) {
 
     case "ROOM": {
       if (components[1]) {
-        // Joiined a room
+
+        if(components[1] === room) {
+          return;
+        }
+
+        // Clear screen if already in a room
         messages.innerHTML = "";
-        history.pushState({}, `/${components[1]}`, `/${components[1]}`);
 
-        // Add room
-        const room = document.createElement("h1");
-        room.className = "message--room";
-        room.innerText = components[1];
-        messages.appendChild(room);
-        room.scrollIntoView();
+        // Save room, reset topic
+        room = components[1];
+        topic = "";
 
-        // Add greeting
-        const greeting = document.createElement("p");
-        greeting.className = "message--greeting";
-        greeting.innerText = components[2] || `Welcome to /${components[1]}!`;
+        // Update navigation
+        history.pushState({}, `/${room}`, `/${room}`);
 
-        // Append them
-        messages.appendChild(room);
-        messages.appendChild(greeting);
-        greeting.scrollIntoView();
-
-        setRoom();
+        // Update header
+        roomElement.innerText = room;
+        topicElement.innerText = topic;
       } else {
         // Left the room
+        room = null;
+        topic = null;
+        roomElement.innerText = "";
+        topicElement.innerText = "";
+
         messages.innerHTML = "";
-        renderMessage("event", `You left ${room}`);
         history.pushState({}, "chat", "/");
-        setRoom();
         renderChat(
           0,
           "Welcome Bot",
@@ -258,29 +249,14 @@ function handleMessage(rawMessage) {
       }
       break;
     }
-    case "JOINED":
-      // Notify user
-      renderMessage("event", `${components[2]} joined`);
-      break;
-    case "LEFT":
-      // Notify user
-      renderMessage("event", `${components[2]} left`);
-      break;
-    case "SETNAME":
-      if (components[3]) {
-        // Notify user
-        renderMessage(
-          "event",
-          `${components[2]} changed their name to ${components[3]}`,
-        );
+
+    case "TOPIC":
+      if(components[1]) {
+        topic = components[1];
+
+        // update header
+        topicElement.innerText = topic;
       }
-      break;
-    case "MIGRATED":
-      // Notify user
-      renderMessage(
-        "event",
-        `${components[2]} changed their name to ${components[4]}`,
-      );
       break;
     case "CHAT": {
       renderChat(components[1], components[2], components[3]);
@@ -316,8 +292,6 @@ function connect() {
   ws.onopen = function () {
     // Reset attempts
     connectionAttempts = 0;
-
-    renderMessage("info", "Connected to server!");
 
     // Authenticate if possible
     const token = localStorage.getItem("token");
@@ -378,7 +352,19 @@ function connect() {
  ****************************/
 
 // Set room when the user uses browser nav buttons
-window.onpopstate = setRoom;
+window.onpopstate = function() {
+  if(!ws) {
+    return;
+  }
+
+  if(location.pathname.length > 1) {
+    if(location.pathname.slice(1) !== room) {
+      ws.join(location.pathname.slice(1));
+    }
+  } else if(room) {
+    ws.leave();
+  }
+};
 
 // Handle name form submissions
 nameForm.onsubmit = function (e) {
@@ -420,7 +406,7 @@ window.onunload = function () {
  *********/
 
 // Set the room initially
-setRoom();
+// setRoom();
 
 // Connect initially
 connect();

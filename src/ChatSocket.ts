@@ -86,7 +86,6 @@ export class ChatSocket {
         if (typeof ev === "string") {
           this.handleEvent(Event.Text, ev);
         } else if (ev instanceof Uint8Array) {
-          console.log(isWebSocketPingEvent(ev));
           this.handleEvent(Event.Binary, ev);
         } else if (isWebSocketPingEvent(ev)) {
           this.handleEvent(Event.Ping, ev);
@@ -212,9 +211,9 @@ export class ChatSocket {
 
     if (this.room) {
       // Send to all clients in the room
-      await this.broadcast(merge("SETNAME", this.id, oldName!, this.name));
+      await this.broadcast(merge("EVENT", `${oldName} changed their name to ${name}`));
     } else if (oldName) {
-      await this.send(merge("SETNAME", this.id, oldName!, this.name));
+      await this.send(merge("EVENT", `You changed your name to ${name}`));
     }
 
     return true;
@@ -244,7 +243,7 @@ export class ChatSocket {
       if (this.room) {
         // Send to all clients in the room
         await this.broadcast(
-          merge("MIGRATED", oldId, oldName!, this.id, this.name!),
+          merge("EVENT", `${oldName} is now ${this.name}`),
         );
       } else {
         await this.send(merge("ID", this.id));
@@ -267,7 +266,7 @@ export class ChatSocket {
     // Leave room if they're in one
     if (this.room) {
       // Notify others
-      await this.broadcast(merge("LEFT", this.id, this.name));
+      await this.broadcast(merge("EVENT", `${this.name} left`));
     }
 
     this.room = room;
@@ -275,7 +274,11 @@ export class ChatSocket {
     // Get room data
     let [ owner, topic = "" ] = await redisClient.hmget(`room:${room}`, "owner", "topic");
 
-    await this.send(merge("ROOM", room, topic));
+    await this.send(merge("ROOM", room));
+
+    if(topic) {
+      await this.send(merge("TOPIC", topic));
+    }
 
     if(owner) {
       // Room exists
@@ -300,7 +303,7 @@ export class ChatSocket {
     }
 
     // Notify others
-    await this.broadcast(merge("JOINED", this.id, this.name!));
+    await this.broadcast(merge("EVENT", `${this.name} joined`));
   }
 
   async setRoomTopic(topic: string) {
@@ -317,6 +320,8 @@ export class ChatSocket {
     await redisClient.hset(`room:${this.room}`, "topic", topic);
 
     await this.send(`SUCCESS "Room topic changed."`);
+
+    await this.broadcast(`TOPIC "${topic}"`);
   }
 
   /**
@@ -328,7 +333,7 @@ export class ChatSocket {
     }
 
     // Notify others
-    await this.broadcast(merge("LEFT", this.id, this.name!));
+    await this.broadcast(merge("EVENT", `${this.name} left`));
 
     this.room = null;
 

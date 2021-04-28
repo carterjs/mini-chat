@@ -17,20 +17,14 @@ const authCommands = {
       await socket.send(`ERROR "${err.message}"`);
     }
   },
-  "setname": async (socket: ChatSocket, name: string) => {
+  "name": async (socket: ChatSocket, ...components: string[]) => {
+    const name = components.join(" ");
     try {
       await socket.setName(name);
     } catch (err) {
       await socket.send(`ERROR "${err.message}"`);
     }
-  },
-  "name": async (socket: ChatSocket) => {
-    await socket.send(
-      `SUCCESS "${
-        socket.name ? `Your name is ${socket.name}` : "You don't have a name"
-      }"`,
-    );
-  },
+  }
 };
 
 export default authCommands;
