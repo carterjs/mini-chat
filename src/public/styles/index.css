@@ -16,7 +16,8 @@ body {
 }
 
 a {
-    color: inherit;
+    color: #fff;
+    text-decoration-color: #ccc;
 }
 
 a:hover {

@@ -155,9 +155,12 @@ export class ChatServer {
 
     this.sockets.delete(oldId);
 
-    // Is the id taken on this node?
-    if(this.sockets.has(newId)) {
-      throw new Error("ID already in use");
+    // Is there a socket already connected with that id?
+    const conflictSocket = this.sockets.get(newId);
+    if(conflictSocket) {
+      if(!conflictSocket.isClosed) {
+        throw new Error("ID already in use");
+      }
     }
     
     socket.id = newId;

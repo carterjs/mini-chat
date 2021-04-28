@@ -354,6 +354,7 @@ function handleMessage(rawMessage) {
     }
 
     case "TOPIC":
+      console.log("Topic!!!");
         topic = components[1] || "";
 
         // update header
@@ -455,6 +456,7 @@ function connect() {
 
   // Receive messages
   ws.onmessage = function (e) {
+    console.log(e.data);
     handleMessage(e.data);
   };
 }
