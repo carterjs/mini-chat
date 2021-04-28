@@ -18,11 +18,14 @@ var room;
 var afk = false;
 var topic;
 
+var nameFormScreenOpen = false;
+
 // Get the elements
 const nameFormScreen = document.getElementById("name-form-screen");
 const chatScreen = document.getElementById("chat-screen");
 const nameForm = document.getElementById("name-form");
 const nameElement = document.getElementById("name");
+const nameFormError = document.getElementById("name-form-error");
 const messages = document.getElementById("messages");
 const inputElement = document.getElementById("input");
 const sendButton = document.getElementById("send");
@@ -126,6 +129,12 @@ function addLinks(element) {
  * @param {string} message the message to render
  */
 function renderMessage(style, message) {
+  if(nameFormScreenOpen) {
+    nameFormError.className = `name-form__error name-form__error--${style}`;
+    nameFormError.innerText = message;
+    return;
+  }
+
   // Definitely not a chat - reset block
   block = null;
 
@@ -306,6 +315,13 @@ function handleMessage(rawMessage) {
       break;
     case "NAME":
       name = components[1];
+      if(nameFormScreenOpen) {
+        nameFormScreen.classList.remove("fade-in");
+        nameFormScreen.classList.add("fade-out");
+        chatScreen.classList.add("fade-in");
+        inputElement.focus();
+        nameFormScreenOpen = false;
+      }
       break;
     case "TOKEN":
       // Save token in local storage
@@ -411,6 +427,7 @@ function connect() {
       inputElement.focus();
     } else {
       nameFormScreen.classList.add("fade-in");
+      nameFormScreenOpen = true;
     }
 
     // Handle form submissions with current connection
@@ -481,20 +498,21 @@ window.onpopstate = function () {
 nameForm.onsubmit = function (e) {
   e.preventDefault();
 
+  if(nameElement.value.length === 0) {
+    renderMessage("error", "Name cannot be empty");
+    return;
+  }
+
   if (ws) {
     // Websocket exists - it's connected
     send(`/NAME "${nameElement.value}"`);
-    nameFormScreen.classList.remove("fade-in");
-    nameFormScreen.classList.add("fade-out");
-    chatScreen.classList.add("fade-in");
-    inputElement.focus();
   } else {
     console.error("Socket is not connected");
   }
 };
 
 // Don't allow enter in input element
-input.addEventListener("keypress", function (e) {
+inputElement.addEventListener("keypress", function (e) {
   if (e.key === "Enter") {
     e.preventDefault();
     try {
@@ -502,6 +520,12 @@ input.addEventListener("keypress", function (e) {
     } catch (err) {
       console.error(err.message);
     }
+  }
+});
+
+nameElement.addEventListener("keypress", function(e) {
+  if(!/\w+/.test(e.key)) {
+    e.preventDefault();
   }
 });
 

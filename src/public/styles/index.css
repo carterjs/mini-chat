@@ -421,6 +421,31 @@ color: #ccc;
     background-image: linear-gradient(90deg, #3b3bbb 0%, #5959b8 100%);
 }
 
+.name-form__error {
+    padding: 1rem;
+    background: linear-gradient(90deg, #222, #111);
+    border-radius: 0.5rem;
+}
+.name-form__error:empty {
+    display: none;
+}
+
+/* Error messages */
+.name-form__error--error {
+    /* text-align: center; */
+    color: #bb3b3b;
+}
+
+/* Warning message */
+.name-form__error--warning {
+    color: #bbbb3b;
+}
+
+/* Success message */
+.name-form__error--success {
+    color: #3bbb3b;
+}
+
 .fade-out {
     animation: fadeOut 200ms ease forwards;
 }
