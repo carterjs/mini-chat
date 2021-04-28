@@ -5,24 +5,18 @@ Created by Carter J. Schmalzle
 ### Requirements:
 
 - [x] Accounts
-- [ ] Different user roles
-  - Plan: just owner
-- [ ] Must use a database
-  - Plan: connect Redis for Pub/Sub and use to store some basic chat info like a
-    topic and the owner. Only the owner will be able to set the topic.
+  - More like sessions or identification but yeah
+- [x] Different user roles
+  - Owner and not owner. Only owner can set topic
+- [x] Must use a database
+  - Redis for Pub/Sub and for storing topics and owners
 - [x] Must have interactive UI
-  - Plan: plain old HTML to make the simplest chat interface possible with slash
-    commands. History and completion would be nice, but are not necessary.
 - [x] Must use a library or framework not discussed/used in class
-- [x] Must use an outside REST API in some way
-  - Need to confirm, but I'd like to just do the QR code thing and nothing else.
-    Could additionally add more slash commands or the ability to add custom
-    slash commands.
+- [ ] Must use an outside REST API in some way
+  - Currently just have the /qr command which does use a REST API technically. Does that work?
 - [x] Must deploy your application in some publicly accessible way (Heroku,
   Digital Ocean, AWS, etc)
-  - It's deployed to Google's Cloud Run, which is great since it just runs any
-    Docker container, but not great because connections time out which
-    disconnects the websocket temporarily sometimes.
+  - It's deployed to Google's Cloud Run
 
 ### Plan
 
@@ -35,8 +29,7 @@ There will be very basic user roles. The first person to join a chat at a
 particular URL will be made the owner. They will have a few extra abilities, but
 not many.
 
-Each person will have a name, but it may be a randomly generated one (kinda
-phasing this out). Names do not need to be unique, but I may add some sort of
+Each person will have a name. Names do not need to be unique, but I may add some sort of
 clarification mechanism to prevent stealing identities. Each user will have a
 unique ID that will be sent with all interactions so that there will be no
 confusion there.
@@ -58,35 +51,12 @@ joins next would gain control over the chat.
 #### Running With Docker
 
 The easiest way to run this project is with Docker. Simply run
-`docker-compose up`.
+`docker-compose up` or in the newest version of the Docker CLI, `docker compose up`.
 
 Unfortunately for me, Deno's file watching system doesn't seem to work on the
 new Apple Silicon computers while also running within a Docker container. It
 seems to work fine on other architectures, but since it doesn't work on my main
 computer, the live reloading isn't enabled when in the Docker environment.
-
-#### Standard Development Environment
-
-To start the server, you will also need to be running Redis. The following
-command can be used to start Redis in docker:
-
-```
-docker run -it -p "6379:6379" redis
-```
-
-You'll then want to provide the connection information to the server through a
-`.env` file. An example is given. You will need to supply the environment
-variables `PORT`, `REDIS_HOST`, `REDIS_PORT`, and `JWT_SECRET`.
-
-Now, you should be able to run the server using Deno. The following command runs
-the server with automatic reloading enabled:
-
-```
-deno run --allow-net --allow-read --allow-env --watch --unstable src/index.ts
-```
-
-The server should then be available on localhost at the port you specified in
-`.env`'s `PORT`.
 
 #### Running Without Docker
 
@@ -100,3 +70,26 @@ Once they're both installed, the Deno commands will be the same as above, and I
 think running `redis-server` will start the Redis server on the default
 port 6379. I've never done it this way since I don't like installing things on
 my computer if I can avoid it.
+
+#### Standard Development Environment
+
+To start the server, you will also need to be running Redis. The following
+command can be used to start Redis in docker:
+
+```
+docker run -it -p "6379:6379" redis
+```
+
+You'll then want to provide the connection information to the server through a
+`.env` file. An example is given. You will need to supply the environment
+variables `PORT`, `REDIS_HOST`, and `JWT_SECRET`. `REDIS_HOST` is just "localhost" if you're running locally and using the default port of 6379.
+
+Now, you should be able to run the server using Deno. The following command runs
+the server with automatic reloading enabled:
+
+```
+deno run --allow-net --allow-read --allow-env --watch --unstable src/index.ts
+```
+
+The server should then be available on localhost at the port you specified in
+`.env`'s `PORT`.

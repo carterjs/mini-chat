@@ -306,7 +306,7 @@ function handleMessage(rawMessage) {
         renderChat(
           0,
           "WelcomeBot",
-          "You can type /join followed by a name to join a room",
+          "You can type /join <room> to join a room or /help to see a list of all commands",
         );
       }
 
