@@ -93,7 +93,7 @@ function send(input) {
 function addLinks(element) {
   // Make links into links
   const withLinks = element.innerHTML.replace(
-    /(https?:\/\/)?[^\s\.\/#?]+(\.[^\s\.\/#?]+)+([^\s\.]+(\.[^\s\.\/])*)*/ig,
+    /(https?:\/\/)?[a-z0-9-_]+(\.[a-z0-9-_]+)+(\.?[a-z0-9&$+,\/:;=?@#]+)*/ig,
     (match) => {
       let url = match;
       if (!match.startsWith("http")) {
@@ -113,7 +113,7 @@ function addLinks(element) {
  */
 function renderMessage(style, message) {
   if(nameFormScreenOpen) {
-    nameFormError.className = `name-form__error name-form__error--${style}`;
+    nameFormError.className = `name-form__error name-form__error--${style.toLowerCase()}`;
     nameFormError.innerText = message;
     return;
   }
@@ -123,7 +123,7 @@ function renderMessage(style, message) {
 
   // Create container
   const messageElement = document.createElement("p");
-  messageElement.className = `message message--${style}`;
+  messageElement.className = `message message--${style.toLowerCase()}`;
 
   // Add content
   messageElement.innerText = message;
