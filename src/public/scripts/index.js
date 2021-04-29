@@ -70,7 +70,7 @@ function send(input) {
 
     if (room) {
       // Just text - make it a command
-      ws.send(`SEND "${input}"`);
+      ws.send(`SEND ${input}`);
     } else {
       setTimeout(() => {
         renderChat(0, "WelcomeBot", getResponse(input));
@@ -88,26 +88,6 @@ function send(input) {
         ws.send(input.slice(1));
     }
   }
-}
-
-/**
- * Parse the server's message format to get a usable array of strings
- * @param {string} message the message from the server
- * @returns an array of all of the components of the message
- */
-function parseList(message) {
-  // Break the message list into an array of messages
-  const components = (message.match(/("[^"]*")|[^"\s]+/g) || []).map(
-    (component) => {
-      // Remove quote characters
-      if (component.startsWith('"')) {
-        return component.slice(1, -1);
-      }
-      return component;
-    },
-  );
-
-  return components;
 }
 
 function addLinks(element) {
@@ -281,17 +261,17 @@ function renderHelp() {
  */
 function handleMessage(rawMessage) {
   // Break up space-delimited responses into an array
-  const components = parseList(rawMessage);
+  const [command, payload] = rawMessage.split(/\s(.+)/);
 
   // Add classes and content
-  switch (components[0]) {
+  switch (command) {
     /* Server responses */
     case "INFO":
     case "EVENT":
     case "SUCCESS":
     case "WARNING":
     case "ERROR":
-      renderMessage(components[0].toLowerCase(), components[1]);
+      renderMessage(command, payload);
       break;
 
     /* Identification */
@@ -314,10 +294,10 @@ function handleMessage(rawMessage) {
       }
 
       // Remember id
-      id = components[1];
+      id = payload;
       break;
     case "NAME":
-      name = components[1];
+      name = payload;
       if(nameFormScreenOpen) {
         nameFormScreen.classList.remove("fade-in");
         nameFormScreen.classList.add("fade-out");
@@ -327,9 +307,9 @@ function handleMessage(rawMessage) {
       }
       break;
     case "TOKEN":
-      if(components[1]) {
+      if(payload) {
         // Save token in local storage
-        localStorage.setItem("token", components[1]);
+        localStorage.setItem("token", payload);
       } else {
         localStorage.removeItem("token");
         messages.innerHTML = "";
@@ -344,8 +324,8 @@ function handleMessage(rawMessage) {
         if (afk) {
           return;
         }
-        if (components[1]) {
-          if (components[1] === room) {
+        if (payload) {
+          if (payload === room) {
             return;
           }
 
@@ -353,7 +333,7 @@ function handleMessage(rawMessage) {
           messages.innerHTML = "";
 
           // Save room, reset topic
-          room = components[1];
+          room = payload;
           topic = "";
 
           // Update navigation
@@ -381,26 +361,28 @@ function handleMessage(rawMessage) {
       }
       break;
     case "TOPIC":
-      topic = components[1] || "";
+      topic = payload || "";
 
       // update header
       topicElement.innerText = topic;
       addLinks(topicElement);
       break;
     case "CHAT": {
-      if (components[1] === id) {
+      const [senderId, nameAndMessage] = payload.split(/\s(.+)/);
+      const [senderName, message] = nameAndMessage.split(/\s(.+)/);
+      if (senderId === id) {
         // It's my message
-        if(components[3] == chats.pop()) {
+        if(message == chats.pop()) {
           // Matches what was already rendered optimistically
           return;
         }
       }
-      renderChat(components[1], components[2], components[3]);
+      renderChat(senderId, senderName, message);
       break;
     }
     case "QR": {
       const img = document.createElement("img");
-      img.src = components[1];
+      img.src = payload;
       img.className = "qr-code";
       messages.appendChild(img);
       img.scrollIntoView();
@@ -410,7 +392,7 @@ function handleMessage(rawMessage) {
     /* No matching type */
 
     default:
-      console.error(`Unknown message type: ${components[0]}`);
+      console.error(`Unknown message type: ${command}`);
   }
 }
 
@@ -520,7 +502,7 @@ nameForm.onsubmit = function (e) {
 
   if (ws) {
     // Websocket exists - it's connected
-    send(`/NAME "${nameElement.value}"`);
+    send(`/NAME ${nameElement.value}`);
   } else {
     console.error("Socket is not connected");
   }

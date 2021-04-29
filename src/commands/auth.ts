@@ -13,23 +13,23 @@ const authCommands = {
 
       await socket.send(`TOKEN ${token}`);
     } catch (err) {
-      await socket.send(`ERROR "${err.message}"`);
+      await socket.send(`ERROR ${err.message}`);
     }
   },
   "migrate": async (socket: ChatSocket, token: string) => {
     try {
       await socket.migrate(token);
     } catch (err) {
-      await socket.send(`ERROR "${err.message}"`);
+      await socket.send(`ERROR ${err.message}`);
       await socket.send("TOKEN");
     }
   },
   "name": async (socket: ChatSocket, name?: string) => {
     if (!name) {
       if (socket.name) {
-        await socket.send(`SUCCESS "Your name is ${socket.name}"`);
+        await socket.send(`SUCCESS Your name is ${socket.name}`);
       } else {
-        await socket.send(`SUCCESS "You don't have a name"`);
+        await socket.send(`SUCCESS You don't have a name`);
       }
       return;
     }
@@ -37,7 +37,7 @@ const authCommands = {
     try {
       await socket.setName(name);
     } catch (err) {
-      await socket.send(`ERROR "${err.message}"`);
+      await socket.send(`ERROR ${err.message}`);
     }
   },
 };

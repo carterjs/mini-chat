@@ -3,7 +3,7 @@ import { ChatSocket } from "../ChatSocket.ts";
 const authCommands = {
   "qr": async (socket: ChatSocket, size = "150") => {
     if (!socket.room) {
-      await socket.send(`ERROR "You're not in a room"`);
+      await socket.send(`ERROR You're not in a room`);
       return;
     }
 

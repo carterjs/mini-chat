@@ -110,7 +110,7 @@ export class ChatServer {
         this.sockets.delete(socket.id);
 
         if (socket.room) {
-          await socket.broadcast(`EVENT "${socket.name} left"`);
+          await socket.broadcast(`EVENT ${socket.name} left`);
         }
       });
 
@@ -122,7 +122,7 @@ export class ChatServer {
         if (resolver) {
           resolver(socket, ...args.slice(1));
         } else {
-          await socket.send(`ERROR "Invalid command"`);
+          await socket.send(`ERROR Invalid command`);
         }
       });
     } catch (_err) {

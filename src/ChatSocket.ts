@@ -225,9 +225,9 @@ export class ChatSocket {
 
     if (this.room) {
       // Send to all clients in the room
-      await this.broadcast(`EVENT "${oldName} changed their name to ${name}"`);
+      await this.broadcast(`EVENT ${oldName} changed their name to ${name}`);
     } else if (oldName) {
-      await this.send(`EVENT "You changed your name to ${name}"`);
+      await this.send(`EVENT You changed your name to ${name}`);
     }
 
     return true;
@@ -249,7 +249,7 @@ export class ChatSocket {
         name: string;
       };
     } catch(err) {
-      this.send(`ERROR "Invalid token"`);
+      this.send(`ERROR Invalid token`);
       this.send("TOKEN");
       return;
     }
@@ -258,13 +258,13 @@ export class ChatSocket {
     try {
       await this.server.migrate(oldId, payload.id, payload.name);
     } catch(err) {
-      await this.send(`ERROR "${err.message}"`);
+      await this.send(`ERROR ${err.message}`);
       await this.close();
     } 
 
     if (this.room) {
       // Send to all clients in the room
-      await this.broadcast(`EVENT "${oldName} is now ${this.name}"`);
+      await this.broadcast(`EVENT ${oldName} is now ${this.name}`);
     }
   }
 
@@ -280,7 +280,7 @@ export class ChatSocket {
     // Leave room if they're in one
     if (this.room) {
       // Notify others
-      await this.broadcast(`EVENT "${this.name} left"`);
+      await this.broadcast(`EVENT ${this.name} left`);
     }
 
     this.room = room;
@@ -295,7 +295,7 @@ export class ChatSocket {
     await this.send(`ROOM ${room}`);
 
     if (topic) {
-      await this.send(`TOPIC "${topic}"`);
+      await this.send(`TOPIC ${topic}`);
     }
 
     if (owner) {
@@ -315,12 +315,12 @@ export class ChatSocket {
       await tx.flush();
 
       // Notify user
-      await this.send(`INFO "You've just claimed this room!"`);
-      await this.send(`INFO "You can use the /topic command to set a topic"`);
+      await this.send(`INFO You've just claimed this room!`);
+      await this.send(`INFO You can use the /topic command to set a topic`);
     }
 
     // Notify others
-    await this.broadcast(`EVENT "${this.name} joined"`);
+    await this.broadcast(`EVENT ${this.name} joined`);
   }
 
   async setRoomTopic(topic: string) {
@@ -340,9 +340,9 @@ export class ChatSocket {
 
     await redisClient.hset(`room:${this.room}`, "topic", topic);
 
-    await this.send(`SUCCESS "Room topic changed."`);
+    await this.send(`SUCCESS Room topic changed.`);
 
-    await this.broadcast(`TOPIC "${topic}"`);
+    await this.broadcast(`TOPIC ${topic}`);
   }
 
   /**
@@ -357,7 +357,7 @@ export class ChatSocket {
     this.room = null;
 
     // Notify others
-    await this.server.broadcast(room, `EVENT "${this.name} left"`);
+    await this.server.broadcast(room, `EVENT ${this.name} left`);
 
     await this.send("ROOM");
   }
