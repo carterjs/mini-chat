@@ -92,7 +92,7 @@ function send(input) {
 
 function addLinks(element) {
   // Make links into links
-  const withLinks = element.innerHTML.replace(
+  const withLinks = element.textContent.replace(
     /(https?:\/\/)?[a-z0-9-_]+(\.[a-z0-9-_]+)+(\.?[a-z0-9&$+,\/:;=?@#]+)*/ig,
     (match) => {
       let url = match;
