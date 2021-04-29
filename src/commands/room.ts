@@ -29,7 +29,7 @@ const roomCommands = {
     }
   },
   "send": async (socket: ChatSocket, ...components: string[]) => {
-    const message = components.join(" ");
+    const message = components.join(" ").trim();
     try {
       // await socket.broadcastChat(message);
       await socket.broadcast(`CHAT ${socket.id} "${socket.name}" "${message}"`);

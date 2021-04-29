@@ -353,10 +353,11 @@ export class ChatSocket {
       throw new Error("You're not in a room");
     }
 
-    // Notify others
-    await this.broadcast(`EVENT "${this.name} left"`);
-
+    const room = this.room;
     this.room = null;
+
+    // Notify others
+    await this.server.broadcast(room, `EVENT "${this.name} left"`);
 
     await this.send("ROOM");
   }

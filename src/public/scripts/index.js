@@ -63,6 +63,7 @@ function send(input) {
 
   // Check if it's a command
   if (!/^\/\w+/.test(input)) {
+    input = input.trim();
     // Render our own message optimistically
     renderChat(id, name, input);
     chats.push(input);
@@ -562,7 +563,7 @@ document.addEventListener("visibilitychange", function () {
 
   if (document.visibilityState === "hidden") {
     send("/leave");
-    renderMessage("event", "You left");
+    renderMessage("event", `${name} left`);
     afk = true;
   } else if (location.pathname.length > 1) {
     send(`/join ${location.pathname.slice(1)}`);
