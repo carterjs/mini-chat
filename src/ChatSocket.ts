@@ -242,13 +242,25 @@ export class ChatSocket {
     const oldId = this.id;
     const oldName = this.name;
 
-    const payload = await verify(token, JWT_SECRET!, "HS512") as {
-      id: string;
-      name: string;
-    };
+    let payload;
+    try {
+      payload = await verify(token, JWT_SECRET!, "HS512") as {
+        id: string;
+        name: string;
+      };
+    } catch(err) {
+      this.send(`ERROR "Invalid token"`);
+      this.send("TOKEN");
+      return;
+    }
 
     // Migrate to new id in map
-    await this.server.migrate(oldId, payload.id, payload.name);
+    try {
+      await this.server.migrate(oldId, payload.id, payload.name);
+    } catch(err) {
+      await this.send(`ERROR "${err.message}"`);
+      await this.close();
+    } 
 
     if (this.room) {
       // Send to all clients in the room
@@ -283,7 +295,7 @@ export class ChatSocket {
     await this.send(`ROOM ${room}`);
 
     if (topic) {
-      await this.send(`TOPIC ${topic}`);
+      await this.send(`TOPIC "${topic}"`);
     }
 
     if (owner) {
@@ -314,6 +326,10 @@ export class ChatSocket {
   async setRoomTopic(topic: string) {
     if (!this.room) {
       throw new Error("You're not in a room");
+    }
+
+    if(topic.length > 140) {
+      throw new Error("Topics may not exceed 140 characters in length");
     }
 
     const [owner] = await redisClient.hmget(`room:${this.room}`, "owner");

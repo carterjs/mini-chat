@@ -17,6 +17,7 @@ var id;
 var room;
 var afk = false;
 var topic;
+var chats = [];
 
 var nameFormScreenOpen = false;
 
@@ -64,6 +65,7 @@ function send(input) {
   if (!/^\/\w+/.test(input)) {
     // Render our own message optimistically
     renderChat(id, name, input);
+    chats.push(input);
 
     if (room) {
       // Just text - make it a command
@@ -324,8 +326,14 @@ function handleMessage(rawMessage) {
       }
       break;
     case "TOKEN":
-      // Save token in local storage
-      localStorage.setItem("token", components[1]);
+      if(components[1]) {
+        // Save token in local storage
+        localStorage.setItem("token", components[1]);
+      } else {
+        localStorage.removeItem("token");
+        messages.innerHTML = "";
+        initiateAuth();
+      }
       break;
 
     /* Room */
@@ -381,8 +389,10 @@ function handleMessage(rawMessage) {
     case "CHAT": {
       if (components[1] === id) {
         // It's my message
-
-        return;
+        if(components[3] == chats.pop()) {
+          // Matches what was already rendered optimistically
+          return;
+        }
       }
       renderChat(components[1], components[2], components[3]);
       break;
@@ -403,6 +413,19 @@ function handleMessage(rawMessage) {
   }
 }
 
+function initiateAuth() {
+  // Authenticate if possible
+  const token = localStorage.getItem("token");
+  if (token) {
+    send(`/MIGRATE ${token}`);
+    chatScreen.classList.add("fade-in");
+    inputElement.focus();
+  } else {
+    nameFormScreen.classList.add("fade-in");
+    nameFormScreenOpen = true;
+  }
+}
+
 /** Connect and reconnect to the ws server */
 function connect() {
   // Create the connection
@@ -419,16 +442,7 @@ function connect() {
     // Reset attempts
     connectionAttempts = 0;
 
-    // Authenticate if possible
-    const token = localStorage.getItem("token");
-    if (token) {
-      send(`/MIGRATE ${token}`);
-      chatScreen.classList.add("fade-in");
-      inputElement.focus();
-    } else {
-      nameFormScreen.classList.add("fade-in");
-      nameFormScreenOpen = true;
-    }
+    initiateAuth();
 
     // Handle form submissions with current connection
     sendButton.onclick = sendInput;
@@ -526,6 +540,7 @@ inputElement.addEventListener("keypress", function (e) {
 nameElement.addEventListener("keypress", function(e) {
   if(!/\w+/.test(e.key)) {
     e.preventDefault();
+    renderMessage("warning", "Names may only contain letters, numbers, and underscores");
   }
 });
 

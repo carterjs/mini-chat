@@ -297,7 +297,7 @@ color: #ccc;
 .textbox__input {
     outline: none;
     flex: auto;
-    padding: 1.5rem 1rem;
+    padding: 1.5rem 0;
     word-wrap: break-word;
     max-width: auto;
     min-width: 0;
@@ -307,7 +307,7 @@ color: #ccc;
     content: attr(placeholder)
 }
 .textbox__button {
-    padding: 1.5rem 1rem;
+    padding: 1.5rem 0;
 }
 
 .main {

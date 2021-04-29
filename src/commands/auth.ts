@@ -21,7 +21,7 @@ const authCommands = {
       await socket.migrate(token);
     } catch (err) {
       await socket.send(`ERROR "${err.message}"`);
-      await socket.close();
+      await socket.send("TOKEN");
     }
   },
   "name": async (socket: ChatSocket, name?: string) => {
