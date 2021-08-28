@@ -1,50 +1,6 @@
-# CarterJS Chat
+# Mini Chat
 
-Created by Carter J. Schmalzle
-
-### Requirements:
-
-- [x] Accounts
-  - More like sessions or identification but yeah
-- [x] Different user roles
-  - Owner and not owner. Only owner can set topic
-- [x] Must use a database
-  - Redis for Pub/Sub and for storing topics and owners
-- [x] Must have interactive UI
-- [x] Must use a library or framework not discussed/used in class
-- [ ] Must use an outside REST API in some way
-  - Currently just have the /qr command which does use a REST API technically. Does that work?
-- [x] Must deploy your application in some publicly accessible way (Heroku,
-  Digital Ocean, AWS, etc)
-  - It's deployed to Google's Cloud Run
-
-### Plan
-
-The plan is to build a chat app with a focus on in-the-moment communication.
-Authentication will be minimal and it will be ideal for quickly jumping into a
-chat. Every chat will be sharable by a link so that anyone can simply click a
-link or scan a QR code and immediately be in a chat.
-
-There will be very basic user roles. The first person to join a chat at a
-particular URL will be made the owner. They will have a few extra abilities, but
-not many.
-
-Each person will have a name. Names do not need to be unique, but I may add some sort of
-clarification mechanism to prevent stealing identities. Each user will have a
-unique ID that will be sent with all interactions so that there will be no
-confusion there.
-
-Sessions will be managed with JSON Web Tokens (JWTs). Whenever the user changes
-their name or requests a token refresh, they will receive a new token with the
-same id and their current name. Next time they join, they can use that token to
-authenticate and maintain the same ID and name.
-
-A websocket server will be built with [Deno](https://deno.land/) and the client
-application will be simple vanilla HTML, CSS, and JavaScript.
-[Redis](https://redis.io/) will be used for communication between the instances
-of this horizontally-scalable app and to store the user roles for each chat.
-When everyone has left a particular chat, the roles will reset and anyone who
-joins next would gain control over the chat.
+A minimalist chat app with a focus on quick communication and temporary data.
 
 ### Instructions
 
@@ -52,11 +8,6 @@ joins next would gain control over the chat.
 
 The easiest way to run this project is with Docker. Simply run
 `docker-compose up` or in the newest version of the Docker CLI, `docker compose up`.
-
-Unfortunately for me, Deno's file watching system doesn't seem to work on the
-new Apple Silicon computers while also running within a Docker container. It
-seems to work fine on other architectures, but since it doesn't work on my main
-computer, the live reloading isn't enabled when in the Docker environment.
 
 #### Running Without Docker
 
